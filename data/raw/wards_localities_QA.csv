@@ -1,0 +1,9 @@
+﻿check,result,details
+ward coverage,PASS,"38 ward IDs, W001-W038"
+locality rows,860,Locality names extracted from NMC Zone Ward and Area Details (2023); ward 38 updated from NMC 2025 ward map description; extraction cleanups applied
+schema columns,PASS,12 requested columns present in requested order
+blank values,PASS,No blank values in final CSV; ward-level estimated coordinates are repeated for localities within each ward
+locality IDs,PASS,Unique IDs generated sequentially
+coordinates,ESTIMATED,"Approximate ward reference points for prototype use, not locality-level geocoding or official survey coordinates"
+boundary_geojson,REFERENCE LINK,Points to official NMC 2025 consolidated ward map PDF; it is not a polygon GeoJSON boundary file
+zone mapping,PROVISIONAL BASIS,Zone mapping taken from NMC 2023 zone/ward document; ward 1 assigned to AshiNagar by geographic inference because the 2023 table does not explicitly map it
