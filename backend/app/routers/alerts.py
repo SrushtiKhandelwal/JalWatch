@@ -1,7 +1,7 @@
 """
-Alerts API — Early Warning and Alert System (Module 5).
+Alerts API: Early Warning & Telemetry Notification System.
 
-Alert lifecycle:  active → acknowledged → resolved / dismissed
+Alert lifecycle: active -> acknowledged -> resolved / dismissed
 """
 
 from fastapi import APIRouter, Depends, Query, HTTPException
@@ -50,7 +50,7 @@ def get_alerts(
 
 @router.get("/active-count")
 def get_active_alert_count(db: Session = Depends(get_db)):
-    """Quick count of active alerts — useful for navbar badge."""
+    """Quick count of active alerts for header telemetry indicator."""
     from sqlalchemy import func
 
     count = db.query(func.count(Alert.id)).filter(Alert.status == "active").scalar()

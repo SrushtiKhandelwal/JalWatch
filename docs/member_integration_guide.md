@@ -1,10 +1,10 @@
-# JalWatch — Team Integration Guide & API Contracts
+# JalWatch: Technical Integration Guide & API Contracts
 
-This guide documents the system architecture, integration contracts, and handoff points for all 3 members of the **JalWatch** team.
+This guide documents the system architecture, integration interfaces, and handoff points across the **JalWatch** system.
 
 ---
 
-## 🚀 Quickstart: Running JalWatch
+## Quickstart: Running JalWatch
 
 ### 1. Prerequisites
 - Python 3.11+
@@ -15,7 +15,7 @@ This guide documents the system architecture, integration contracts, and handoff
 # From project root (JalWatch/)
 pip install -r requirements.txt
 
-# Seed database with real Nagpur CSV data (38 wards, 10,000 complaints, mock alerts & incidents)
+# Seed database with real Nagpur CSV data (38 wards, 10,000 complaints, telemetry alerts & incidents)
 python -m backend.app.seed
 
 # Start FastAPI server
@@ -34,22 +34,22 @@ npm run dev
 
 ---
 
-## 👥 Work Allocation & Responsibilities
+## Subsystem Architecture & Responsibilities
 
-| Member | Focus | Assigned Modules | Deliverable |
+| Subsystem | Scope | Key Capabilities | Deliverable |
 |:---|:---|:---|:---|
-| **Member 1** | AI / Machine Learning | **Module 3:** Water Incident Detection<br>**Module 4:** AI-Based Risk Prediction | Trained models & risk scoring logic plugged into `backend/app/routers/predictions.py` |
-| **Member 2** | Data & GIS | **Module 1:** Data Management & Validation<br>**Module 2:** GIS Map & Water Network Visualization | Clean PostGIS layers, pipe/node networks, GeoJSON boundaries plugged into `backend/app/routers/wards.py` |
-| **Member 3** | Full Stack / Integration (Completed) | **Module 5:** Early Warning & Alerts<br>**Module 6:** Incident Response & Tracking<br>**Module 7:** Admin Dashboard & Analytics | Working FastAPI backend, SQLite seeder, complete React UI, and API integration contracts |
+| **AI / Machine Learning** | Incident Risk Prediction | Feature extraction, pattern detection, risk scoring | Inference functions in `backend/app/routers/predictions.py` |
+| **Data & GIS** | Spatial Layers & Networks | Ward boundaries, pipe lines, junction nodes | PostGIS spatial queries in `backend/app/routers/wards.py` |
+| **Operations Center** | Alerts, Work Orders, Dashboard | Early warning alerts, work order dispatch, analytics | Complete REST API & React operations console |
 
 ---
 
-## 🧠 Member 1 (AI/ML Developer) Integration Contract
+## Machine Learning Integration Interface
 
 ### Location
 File: [`backend/app/routers/predictions.py`](file:///c:/Users/srush/OneDrive/Desktop/JalWatch/backend/app/routers/predictions.py)
 
-### Your Endpoints
+### Endpoints
 1. **Single Inference Endpoint:** `POST /api/predictions/risk`
    - **Input:**
      ```json
@@ -77,58 +77,49 @@ File: [`backend/app/routers/predictions.py`](file:///c:/Users/srush/OneDrive/Des
 2. **Batch / Ward Rankings Endpoint:** `GET /api/predictions/risk`
    - Returns array of `{ ward_id, ward_name, risk_score, severity_prediction, confidence, recommended_action }` used directly by the Executive Dashboard and AI Risk Models view.
 
-### How to Hook Your Model
-In `backend/app/routers/predictions.py`:
-```python
-# 1. Load your trained model (e.g., joblib.load("ml/models/risk_model.joblib"))
-# 2. Extract features from complaints and pipeline data
-# 3. Call model.predict_proba(features)
-# 4. Return PredictionResponse with your real predictions
-```
-
 ---
 
-## 🗺️ Member 2 (Data & GIS Developer) Integration Contract
+## GIS & Water Network Integration Interface
 
 ### Location
 Files: [`backend/app/routers/wards.py`](file:///c:/Users/srush/OneDrive/Desktop/JalWatch/backend/app/routers/wards.py) and [`backend/app/models.py`](file:///c:/Users/srush/OneDrive/Desktop/JalWatch/backend/app/models.py)
 
-### Your Data Sources
+### Data Sources
 - `data/raw/wards_master.csv` (38 Nagpur wards with center coordinates)
 - `data/raw/water_network_nodes.csv` (802 junctions/pumps/reservoirs)
 - `data/raw/water_network_pipes.csv` (1,452 pipe segments with diameter & age)
 
-### How to Hook Your GIS Network Layers
+### Network Layers
 1. **Ward GeoJSON Boundaries:**
-   - The `Ward` table in `backend/app/models.py` already includes a `boundary_geojson: Text` column.
-   - Populate this column with the true MultiPolygon coordinates from your shapefiles.
+   - The `Ward` table in `backend/app/models.py` includes a `boundary_geojson: Text` column.
+   - Populate this column with MultiPolygon coordinates from official shapefiles.
 2. **Network Pipes & Nodes:**
-   - Add routes in `backend/app/routers/wards.py` or create a new `backend/app/routers/network.py`:
+   - Expose GeoJSON endpoints in `backend/app/routers/wards.py`:
      - `GET /api/network/nodes` -> GeoJSON FeatureCollection of junctions & pumps
      - `GET /api/network/pipes` -> GeoJSON FeatureCollection of pipe LineStrings
-   - The React Leaflet map (`frontend/src/components/MapView.jsx`) is configured with standard Leaflet layers and can directly consume your GeoJSON layers with `L.geoJSON()`.
+   - The React Leaflet map (`frontend/src/components/MapView.jsx`) is configured with standard Leaflet layers and consumes GeoJSON directly with `L.geoJSON()`.
 
 ---
 
-## 🔌 Complete REST API Summary
+## Complete REST API Directory
 
-| Method | Endpoint | Description | Module |
+| Method | Endpoint | Description | Scope |
 |:---|:---|:---|:---|
-| `GET` | `/health` | Server health check | Infrastructure |
-| `GET` | `/api/dashboard/summary` | Top-level KPI counts, resolution SLA, active alerts | Module 7 |
-| `GET` | `/api/dashboard/complaints-by-type` | Grouped breakdown by category | Module 7 |
-| `GET` | `/api/dashboard/complaints-by-severity` | Grouped breakdown by priority | Module 7 |
-| `GET` | `/api/dashboard/complaint-trends` | 30/90 day daily complaint inflow | Module 7 |
-| `GET` | `/api/dashboard/ward-risks` | Ward prioritization ranking | Module 7 |
-| `GET` | `/api/complaints` | Paginated grievances with ward/type/status filters | Core Data |
-| `GET` | `/api/complaints/{id}` | Single complaint audit details | Core Data |
-| `GET` | `/api/wards` | 38 Nagpur wards with zone & coordinates | Module 1/2 |
-| `GET` | `/api/alerts` | Filterable alert stream (critical, high, medium) | Module 5 |
-| `POST` | `/api/alerts` | Broadcast early warning alert | Module 5 |
-| `PATCH` | `/api/alerts/{id}/acknowledge`| Acknowledge alert | Module 5 |
-| `PATCH` | `/api/alerts/{id}/resolve` | Mark alert resolved | Module 5 |
-| `GET` | `/api/incidents` | Filterable incident ticket list | Module 6 |
-| `POST` | `/api/incidents` | Create incident ticket & crew dispatch | Module 6 |
-| `PATCH` | `/api/incidents/{id}/status` | Advance lifecycle status & notes | Module 6 |
-| `GET` | `/api/predictions/risk` | Batch ML ward risk predictions | Module 3/4 |
-| `POST` | `/api/predictions/risk` | Single complaint risk scoring | Module 3/4 |
+| `GET` | `/health` | Server health check | Core Health |
+| `GET` | `/api/dashboard/summary` | Top-level KPI counts, resolution SLA, active alerts | Analytics |
+| `GET` | `/api/dashboard/complaints-by-type` | Grouped breakdown by category | Analytics |
+| `GET` | `/api/dashboard/complaints-by-severity` | Grouped breakdown by priority | Analytics |
+| `GET` | `/api/dashboard/complaint-trends` | 30/90 day daily complaint inflow | Analytics |
+| `GET` | `/api/dashboard/ward-risks` | Ward prioritization ranking | Analytics |
+| `GET` | `/api/complaints` | Paginated grievances with ward/type/status filters | Grievances |
+| `GET` | `/api/complaints/{id}` | Single complaint audit details | Grievances |
+| `GET` | `/api/wards` | 38 Nagpur wards with zone & coordinates | Spatial |
+| `GET` | `/api/alerts` | Filterable alert stream (critical, high, medium) | Telemetry |
+| `POST` | `/api/alerts` | Broadcast early warning alert | Telemetry |
+| `PATCH` | `/api/alerts/{id}/acknowledge`| Acknowledge alert | Telemetry |
+| `PATCH` | `/api/alerts/{id}/resolve` | Mark alert resolved | Telemetry |
+| `GET` | `/api/incidents` | Filterable incident work order list | Work Orders |
+| `POST` | `/api/incidents` | Create incident ticket & crew dispatch | Work Orders |
+| `PATCH` | `/api/incidents/{id}/status` | Advance lifecycle status & notes | Work Orders |
+| `GET` | `/api/predictions/risk` | Batch ML ward risk predictions | AI Risk Engine |
+| `POST` | `/api/predictions/risk` | Single complaint risk scoring | AI Risk Engine |

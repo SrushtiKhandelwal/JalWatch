@@ -7,24 +7,23 @@ import {
   FileText, 
   BrainCircuit, 
   Droplets,
-  Activity,
   Plus
 } from 'lucide-react';
 
 export default function Navbar({ activeTab, setActiveTab, activeAlertCount, openNewIncidentModal }) {
   const navItems = [
-    { id: 'dashboard', label: 'Executive Dashboard', icon: BarChart3 },
-    { id: 'alerts', label: 'Alerts & Early Warning', icon: AlertTriangle, badge: activeAlertCount },
-    { id: 'incidents', label: 'Incident Redressal', icon: ShieldAlert },
-    { id: 'map', label: 'GIS Network Map', icon: MapPin },
-    { id: 'complaints', label: 'Grievance Explorer', icon: FileText },
-    { id: 'predictions', label: 'AI Risk Models', icon: BrainCircuit },
+    { id: 'dashboard', label: 'Overview', icon: BarChart3 },
+    { id: 'alerts', label: 'Early Warning', icon: AlertTriangle, badge: activeAlertCount },
+    { id: 'incidents', label: 'Operations', icon: ShieldAlert },
+    { id: 'map', label: 'Spatial GIS', icon: MapPin },
+    { id: 'complaints', label: 'Grievances', icon: FileText },
+    { id: 'predictions', label: 'Predictive Risk', icon: BrainCircuit },
   ];
 
   return (
     <header style={{
       borderBottom: '1px solid var(--border-subtle)',
-      background: 'rgba(8, 12, 20, 0.85)',
+      background: 'rgba(7, 11, 20, 0.92)',
       backdropFilter: 'blur(16px)',
       position: 'sticky',
       top: 0,
@@ -41,22 +40,25 @@ export default function Navbar({ activeTab, setActiveTab, activeAlertCount, open
         gap: 16
       }}>
         {/* Brand identity */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }} onClick={() => setActiveTab('dashboard')}>
+        <div 
+          style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }} 
+          onClick={() => setActiveTab('dashboard')}
+        >
           <div style={{
-            width: 42,
-            height: 42,
-            borderRadius: 'var(--radius-md)',
+            width: 38,
+            height: 38,
+            borderRadius: 10,
             background: 'linear-gradient(135deg, #0ea5e9, #0284c7)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 0 20px rgba(14, 165, 233, 0.4)'
+            boxShadow: '0 0 16px rgba(14, 165, 233, 0.35)'
           }}>
-            <Droplets size={24} color="#ffffff" />
+            <Droplets size={20} color="#ffffff" />
           </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: '1.25rem', fontWeight: 800, letterSpacing: '-0.02em', color: '#ffffff' }}>
+              <span style={{ fontSize: '1.15rem', fontWeight: 800, letterSpacing: '-0.02em', color: '#ffffff' }}>
                 JalWatch
               </span>
               <span style={{
@@ -64,15 +66,15 @@ export default function Navbar({ activeTab, setActiveTab, activeAlertCount, open
                 fontWeight: 700,
                 padding: '2px 6px',
                 borderRadius: 4,
-                background: 'rgba(14, 165, 233, 0.2)',
+                background: 'rgba(14, 165, 233, 0.15)',
                 color: '#38bdf8',
-                border: '1px solid rgba(14, 165, 233, 0.4)'
+                border: '1px solid rgba(14, 165, 233, 0.3)'
               }}>
                 NMC
               </span>
             </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 500 }}>
-              Nagpur Water Grievance Redressal & Intelligence
+            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 500 }}>
+              Nagpur Municipal Water Command
             </div>
           </div>
         </div>
@@ -81,10 +83,10 @@ export default function Navbar({ activeTab, setActiveTab, activeAlertCount, open
         <nav style={{
           display: 'flex',
           alignItems: 'center',
-          gap: 6,
-          background: 'rgba(15, 23, 42, 0.6)',
-          padding: 4,
-          borderRadius: 'var(--radius-lg)',
+          gap: 4,
+          background: 'rgba(12, 19, 34, 0.7)',
+          padding: '4px 6px',
+          borderRadius: 'var(--radius-md)',
           border: '1px solid var(--border-subtle)',
         }}>
           {navItems.map((item) => {
@@ -97,25 +99,25 @@ export default function Navbar({ activeTab, setActiveTab, activeAlertCount, open
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 8,
-                  padding: '8px 14px',
-                  borderRadius: 'var(--radius-md)',
+                  gap: 7,
+                  padding: '7px 12px',
+                  borderRadius: 8,
                   fontSize: '0.825rem',
                   fontWeight: isActive ? 600 : 500,
                   color: isActive ? '#ffffff' : 'var(--text-secondary)',
-                  background: isActive ? 'linear-gradient(135deg, rgba(14, 165, 233, 0.3), rgba(2, 132, 199, 0.2))' : 'transparent',
-                  border: isActive ? '1px solid rgba(14, 165, 233, 0.4)' : '1px solid transparent',
+                  background: isActive ? 'rgba(14, 165, 233, 0.2)' : 'transparent',
+                  border: isActive ? '1px solid rgba(14, 165, 233, 0.35)' : '1px solid transparent',
                   cursor: 'pointer',
-                  transition: 'all var(--transition-fast)',
+                  transition: 'all 0.15s ease',
                 }}
               >
-                <Icon size={16} color={isActive ? '#38bdf8' : 'currentColor'} />
+                <Icon size={15} color={isActive ? '#38bdf8' : 'currentColor'} />
                 <span>{item.label}</span>
                 {item.badge > 0 && (
                   <span style={{
                     background: 'var(--rose)',
                     color: '#ffffff',
-                    fontSize: '0.7rem',
+                    fontSize: '0.68rem',
                     fontWeight: 700,
                     padding: '2px 6px',
                     borderRadius: 'var(--radius-full)',
@@ -134,25 +136,25 @@ export default function Navbar({ activeTab, setActiveTab, activeAlertCount, open
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            gap: 8,
-            padding: '6px 12px',
-            background: 'rgba(16, 185, 129, 0.1)',
-            border: '1px solid rgba(16, 185, 129, 0.25)',
+            gap: 7,
+            padding: '5px 11px',
+            background: 'rgba(16, 185, 129, 0.08)',
+            border: '1px solid rgba(16, 185, 129, 0.2)',
             borderRadius: 'var(--radius-full)',
             fontSize: '0.75rem',
             color: '#34d399',
             fontWeight: 600
           }}>
-            <div className="live-pulse" />
-            <span>NMC Telemetry Online</span>
+            <div className="live-pulse" style={{ width: 6, height: 6 }} />
+            <span>Telemetry Online</span>
           </div>
 
           <button
             onClick={openNewIncidentModal}
             className="btn btn-primary"
-            style={{ padding: '8px 14px', fontSize: '0.8rem' }}
+            style={{ padding: '7px 14px', fontSize: '0.8rem', borderRadius: 8 }}
           >
-            <Plus size={16} />
+            <Plus size={15} />
             <span>Log Incident</span>
           </button>
         </div>

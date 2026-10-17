@@ -26,7 +26,7 @@ async function fetchJson(url, options = {}) {
 }
 
 export const api = {
-  // Dashboard & Analytics (Module 7)
+  // Dashboard & Analytics Services
   getDashboardSummary: () => fetchJson(`${BASE_URL}/dashboard/summary`),
   getComplaintsByType: () => fetchJson(`${BASE_URL}/dashboard/complaints-by-type`),
   getComplaintsBySeverity: () => fetchJson(`${BASE_URL}/dashboard/complaints-by-severity`),
@@ -54,12 +54,12 @@ export const api = {
   },
   getComplaintById: (id) => fetchJson(`${BASE_URL}/complaints/${id}`),
 
-  // Wards & GIS (Module 1 & 2 integration)
+  // Wards & Spatial GIS
   getWards: () => fetchJson(`${BASE_URL}/wards`),
   getWardById: (id) => fetchJson(`${BASE_URL}/wards/${id}`),
   getWardStats: (id) => fetchJson(`${BASE_URL}/wards/${id}/stats`),
 
-  // Alerts System (Module 5)
+  // Alerts System
   getAlerts: (params = {}) => {
     const searchParams = new URLSearchParams();
     if (params.status) searchParams.set('status', params.status);
@@ -92,7 +92,7 @@ export const api = {
       method: 'PATCH',
     }),
 
-  // Incidents Response (Module 6)
+  // Incidents Response & Work Orders
   getIncidents: (params = {}) => {
     const searchParams = new URLSearchParams();
     if (params.status) searchParams.set('status', params.status);
@@ -126,7 +126,7 @@ export const api = {
       }),
     }),
 
-  // AI/ML Predictions (Module 3 & 4 interface)
+  // AI/ML Predictive Risk Models
   getPredictionsRisk: () => fetchJson(`${BASE_URL}/predictions/risk`),
   getWardRiskPrediction: (wardId) => fetchJson(`${BASE_URL}/predictions/risk/${wardId}`),
 };

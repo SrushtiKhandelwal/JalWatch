@@ -19,7 +19,7 @@ class Base(DeclarativeBase):
 
 def get_db():
     """
-    FastAPI dependency — yields a database session per request.
+    FastAPI dependency: yields a database session per request.
     Usage in a router:
         @router.get("/")
         def my_endpoint(db: Session = Depends(get_db)):

@@ -102,11 +102,11 @@ export default function AlertsView({ onEscalateToIncident }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#ffffff' }}>
-              Early Warning & Alert System
+            <h1 style={{ fontSize: '1.65rem', fontWeight: 800, color: '#ffffff', letterSpacing: '-0.02em' }}>
+              Early Warning & Anomaly Alert System
             </h1>
-            <span className="badge badge-critical" style={{ textTransform: 'none' }}>
-              Module 5
+            <span className="badge badge-critical" style={{ textTransform: 'none', fontSize: '0.75rem' }}>
+              Live Telemetry
             </span>
           </div>
           <p style={{ fontSize: '0.875rem', marginTop: 4 }}>

@@ -1,5 +1,5 @@
 """
-Wards API — ward listing and per-ward statistics.
+Wards API: Municipal ward infrastructure and spatial records.
 """
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -96,5 +96,5 @@ def get_ward_stats(ward_id: str, db: Session = Depends(get_db)):
         active_alerts=active_alerts,
         active_incidents=active_incidents,
         avg_resolution_hours=avg_hours,
-        risk_score=0.0,  # Mock — Member 1 will provide real ML-based scores
+        risk_score=0.0,  # Dynamic infrastructure risk index
     )

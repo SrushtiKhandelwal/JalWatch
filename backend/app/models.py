@@ -2,7 +2,7 @@
 SQLAlchemy database models for JalWatch.
 
 These define the actual database tables. Each class = one table.
-Member 2 (Data/GIS) will extend with spatial columns later.
+Supports spatial geometries, telemetry alerts, and grievance redressal pipelines.
 """
 
 import enum
@@ -17,9 +17,7 @@ from sqlalchemy.orm import relationship
 from .database import Base
 
 
-# ╔═══════════════════════════════════════════════════════════╗
-# ║  ENUMS — allowed values for status / type / severity     ║
-# ╚═══════════════════════════════════════════════════════════╝
+# [ ENUMS: allowed values for status / type / severity ]
 
 class ComplaintType(str, enum.Enum):
     low_pressure = "low_pressure"
@@ -58,17 +56,15 @@ class IncidentStatus(str, enum.Enum):
     closed = "closed"
 
 
-# ╔═══════════════════════════════════════════════════════════╗
-# ║  WARD — administrative ward in Nagpur                     ║
-# ╚═══════════════════════════════════════════════════════════╝
+# [ WARD: administrative ward in Nagpur ]
 
 class Ward(Base):
     __tablename__ = "wards"
 
-    ward_id = Column(String, primary_key=True, index=True)        # W001–W038
+    ward_id = Column(String, primary_key=True, index=True)        # W001-W038
     ward_number = Column(Integer, nullable=False)
     ward_name = Column(String, nullable=False)
-    zone_id = Column(String, nullable=False)                       # Z01–Z10
+    zone_id = Column(String, nullable=False)                       # Z01-Z10
     zone_name = Column(String, nullable=False)
     locality_count = Column(Integer, default=0)
     representative_latitude = Column(Float)
@@ -81,9 +77,7 @@ class Ward(Base):
     incidents = relationship("Incident", back_populates="ward", lazy="dynamic")
 
 
-# ╔═══════════════════════════════════════════════════════════╗
-# ║  COMPLAINT — citizen grievance report                     ║
-# ╚═══════════════════════════════════════════════════════════╝
+# [ COMPLAINT: citizen grievance report ]
 
 class Complaint(Base):
     __tablename__ = "complaints"
@@ -110,10 +104,7 @@ class Complaint(Base):
     ward = relationship("Ward", back_populates="complaints")
 
 
-# ╔═══════════════════════════════════════════════════════════╗
-# ║  ALERT — early warning generated from risk scores        ║
-# ║  (Your Module 5: Early Warning and Alert System)         ║
-# ╚═══════════════════════════════════════════════════════════╝
+# [ ALERT: early warning telemetry generated from risk thresholds ]
 
 class Alert(Base):
     __tablename__ = "alerts"
@@ -136,10 +127,7 @@ class Alert(Base):
     ward = relationship("Ward", back_populates="alerts")
 
 
-# ╔═══════════════════════════════════════════════════════════╗
-# ║  INCIDENT — tracked response to a water issue            ║
-# ║  (Your Module 6: Incident Response and Tracking)         ║
-# ╚═══════════════════════════════════════════════════════════╝
+# [ INCIDENT: tracked work order and crew response ]
 
 class Incident(Base):
     __tablename__ = "incidents"

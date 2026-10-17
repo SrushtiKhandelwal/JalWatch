@@ -121,7 +121,7 @@ export default function App() {
       <footer style={{
         borderTop: '1px solid var(--border-subtle)',
         background: 'rgba(8, 12, 20, 0.95)',
-        padding: '24px',
+        padding: '20px 24px',
         marginTop: 'auto',
         fontSize: '0.8rem',
         color: 'var(--text-muted)'
@@ -135,22 +135,28 @@ export default function App() {
           flexWrap: 'wrap',
           gap: 16
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <Droplet size={16} color="var(--primary)" />
-            <span style={{ color: '#ffffff', fontWeight: 700 }}>JalWatch System</span>
-            <span>— Nagpur Municipal Corporation (NMC) Prototype</span>
+            <span style={{ color: '#ffffff', fontWeight: 700 }}>JalWatch</span>
+            <span style={{ color: 'var(--border-subtle)' }}>|</span>
+            <span>Nagpur Municipal Corporation Water Intelligence Platform</span>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-            <span>Backend: <strong style={{ color: '#38bdf8' }}>FastAPI + SQLite</strong></span>
-            <span>Frontend: <strong style={{ color: '#38bdf8' }}>Vite React + Leaflet + Recharts</strong></span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span className="live-pulse" style={{ width: 6, height: 6 }} />
+              <span style={{ color: '#34d399' }}>Core Telemetry Online</span>
+            </span>
+            <span style={{ color: 'var(--border-subtle)' }}>|</span>
+            <span>Spatial Engine: OpenGIS WGS84</span>
+            <span style={{ color: 'var(--border-subtle)' }}>|</span>
             <a
               href="http://localhost:8000/docs"
               target="_blank"
               rel="noreferrer"
               style={{ color: 'var(--primary)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}
             >
-              <span>Swagger API Docs</span>
+              <span>API Gateway</span>
               <ExternalLink size={12} />
             </a>
           </div>

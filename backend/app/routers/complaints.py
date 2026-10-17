@@ -1,5 +1,5 @@
 """
-Complaints API — browse, filter, and view citizen grievance reports.
+Complaints API: Browse, filter, and audit citizen grievance records.
 """
 
 from fastapi import APIRouter, Depends, Query, HTTPException

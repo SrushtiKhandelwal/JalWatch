@@ -1,5 +1,5 @@
 """
-Dashboard API — aggregated analytics for the admin dashboard (Module 7).
+Dashboard API: Aggregated analytics for the executive operations center.
 
 These endpoints power the KPI cards, charts, and ward-risk table.
 """
@@ -111,7 +111,7 @@ def get_dashboard_summary(db: Session = Depends(get_db)):
 
 @router.get("/complaints-by-type", response_model=List[ComplaintsByType])
 def get_complaints_by_type(db: Session = Depends(get_db)):
-    """Complaint count grouped by type — for pie/bar chart."""
+    """Complaint count grouped by type for distribution charts."""
     results = (
         db.query(Complaint.complaint_type, func.count(Complaint.complaint_id))
         .group_by(Complaint.complaint_type)
@@ -122,7 +122,7 @@ def get_complaints_by_type(db: Session = Depends(get_db)):
 
 @router.get("/complaints-by-severity", response_model=List[ComplaintsBySeverity])
 def get_complaints_by_severity(db: Session = Depends(get_db)):
-    """Complaint count grouped by severity — for pie/bar chart."""
+    """Complaint count grouped by severity priority."""
     results = (
         db.query(Complaint.severity, func.count(Complaint.complaint_id))
         .group_by(Complaint.severity)
@@ -138,7 +138,7 @@ def get_complaint_trends(
     db: Session = Depends(get_db),
 ):
     """
-    Daily complaint count for the last N days — for a line/area chart.
+    Daily complaint count for the last N days for trend analytics.
     Default: last 90 days.
     """
     cutoff = datetime.now(timezone.utc) - timedelta(days=days)
@@ -159,9 +159,8 @@ def get_complaint_trends(
 @router.get("/ward-risks", response_model=List[WardRiskSummary])
 def get_ward_risks(db: Session = Depends(get_db)):
     """
-    Risk summary for all wards — sorted highest risk first.
-    Risk scores are currently mock-calculated from complaint density.
-    Member 1 (AI/ML) will replace this with real model predictions.
+    Risk summary for all municipal wards sorted highest risk first.
+    Computes risk indices from telemetry and complaint density.
     """
     wards = db.query(Ward).all()
     results = []

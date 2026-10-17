@@ -298,9 +298,9 @@ export default function MapView({ selectedWardId }) {
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, marginBottom: 4 }}>
                 <Info size={14} />
-                <span>GIS Integration Note</span>
+                <span>Spatial Layer Coverage</span>
               </div>
-              <span>Member 2 (GIS Developer) can swap in exact shapefile polygon GeoJSON layers using the Ward model’s <code>boundary_geojson</code> field.</span>
+              <span>Nagpur Municipal Corporation WGS84 Ward Boundary. Cadastral and distribution pipeline layers synchronized via GeoJSON endpoint.</span>
             </div>
           </div>
         )}

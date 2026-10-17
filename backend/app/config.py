@@ -15,7 +15,7 @@ class Settings:
     VERSION: str = "1.0.0"
     API_PREFIX: str = "/api"
 
-    # Database — SQLite for development, swap to PostgreSQL for production
+    # Database: SQLite for development, swap to PostgreSQL for production
     # PostgreSQL example: "postgresql+psycopg://user:pass@localhost:5432/jalwatch"
     DATABASE_URL: str = os.getenv(
         "DATABASE_URL",
@@ -25,7 +25,7 @@ class Settings:
     # Path to raw CSV data files
     RAW_DATA_DIR: Path = PROJECT_ROOT / "data" / "raw"
 
-    # CORS — origins allowed to call this API (frontend dev server)
+    # CORS: origins allowed to call this API (frontend dev server)
     CORS_ORIGINS: list = [
         "http://localhost:3000",
         "http://localhost:3001",

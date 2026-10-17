@@ -65,11 +65,11 @@ export default function IncidentsView({ onOpenNewIncidentModal }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#ffffff' }}>
+            <h1 style={{ fontSize: '1.65rem', fontWeight: 800, color: '#ffffff', letterSpacing: '-0.02em' }}>
               Incident Response & Crew Dispatch
             </h1>
-            <span className="badge badge-medium" style={{ textTransform: 'none' }}>
-              Module 6
+            <span className="badge badge-medium" style={{ textTransform: 'none', fontSize: '0.75rem' }}>
+              Operations Command
             </span>
           </div>
           <p style={{ fontSize: '0.875rem', marginTop: 4 }}>

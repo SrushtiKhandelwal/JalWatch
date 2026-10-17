@@ -2,13 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { 
   AlertTriangle, 
   Clock, 
-  CheckCircle2, 
-  FileWarning, 
   Flame, 
   TrendingUp, 
   Droplet,
   ExternalLink,
-  RefreshCw
+  RefreshCw,
+  ShieldCheck,
+  ChevronRight
 } from 'lucide-react';
 import { 
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, 
@@ -19,8 +19,8 @@ import { api } from '../api';
 const SEVERITY_COLORS = {
   critical: '#ef4444',
   high: '#f59e0b',
-  medium: '#38bdf8',
-  low: '#94a3b8'
+  medium: '#0ea5e9',
+  low: '#64748b'
 };
 
 const CATEGORY_COLORS = [
@@ -44,10 +44,10 @@ export default function DashboardView({ onSelectWard, onNavigateTab }) {
         api.getComplaintsByType(),
         api.getComplaintsBySeverity(),
         api.getDailyTrend(30),
-        api.getWardRiskOverview(10),
+        api.getWardRiskOverview(6), // Top 6 wards for clean layout
       ]);
       setSummary(sumRes);
-      setTypes((typeRes || []).map(t => ({
+      setTypes((typeRes || []).slice(0, 6).map(t => ({
         category: (t.complaint_type || t.category || '').replace(/_/g, ' '),
         count: t.count
       })));
@@ -73,22 +73,22 @@ export default function DashboardView({ onSelectWard, onNavigateTab }) {
   if (loading) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh', flexDirection: 'column', gap: 16 }}>
-        <RefreshCw size={32} className="spin" color="var(--primary)" />
-        <p style={{ color: 'var(--text-secondary)' }}>Aggregating 10,000+ NMC water complaints and spatial risk scores...</p>
+        <RefreshCw size={28} className="spin" color="var(--primary)" />
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Loading municipal telemetry...</p>
       </div>
     );
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 24, paddingBottom: 40 }}>
-      {/* Top Header / Actions */}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 28, paddingBottom: 40 }}>
+      {/* Top Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#ffffff', marginBottom: 4 }}>
-            Nagpur Water Utility Command Center
+          <h1 style={{ fontSize: '1.65rem', fontWeight: 800, color: '#ffffff', letterSpacing: '-0.02em' }}>
+            Municipal Water Command Center
           </h1>
-          <p style={{ fontSize: '0.875rem' }}>
-            Real-time analytics across 38 municipal wards, telemetry alert feeds, and grievance redressal workflows.
+          <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: 4 }}>
+            Nagpur city-wide telemetry, grievance velocity, and spatial risk distribution across 38 wards.
           </p>
         </div>
 
@@ -96,176 +96,168 @@ export default function DashboardView({ onSelectWard, onNavigateTab }) {
           onClick={loadData} 
           disabled={refreshing}
           className="btn btn-secondary btn-sm"
+          style={{ gap: 8 }}
         >
-          <RefreshCw size={14} className={refreshing ? 'spin' : ''} />
-          <span>{refreshing ? 'Updating...' : 'Refresh Telemetry'}</span>
+          <RefreshCw size={13} className={refreshing ? 'spin' : ''} />
+          <span>{refreshing ? 'Refreshing...' : 'Refresh Telemetry'}</span>
         </button>
       </div>
 
-      {/* KPI Stats Cards */}
+      {/* 4 Clean Executive KPI Cards */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
         gap: 16,
       }}>
-        <div className="glass-card" style={{ padding: '20px 24px' }}>
+        {/* KPI 1 */}
+        <div className="glass-card" style={{ padding: '22px 24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
-              <p style={{ fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.05em' }}>
                 Total Grievances
-              </p>
-              <h2 style={{ fontSize: '2rem', fontWeight: 800, color: '#ffffff', marginTop: 4 }}>
+              </span>
+              <h2 style={{ fontSize: '2.1rem', fontWeight: 800, color: '#ffffff', marginTop: 4, letterSpacing: '-0.03em' }}>
                 {summary?.total_complaints?.toLocaleString() || 0}
               </h2>
             </div>
-            <div style={{ padding: 10, borderRadius: 'var(--radius-md)', background: 'rgba(14, 165, 233, 0.15)', color: '#38bdf8' }}>
-              <Droplet size={20} />
+            <div style={{ padding: 10, borderRadius: 10, background: 'rgba(14, 165, 233, 0.12)', color: '#38bdf8' }}>
+              <Droplet size={18} />
             </div>
           </div>
-          <div style={{ marginTop: 12, fontSize: '0.75rem', display: 'flex', gap: 12 }}>
-            <span style={{ color: '#34d399' }}>✓ {summary?.resolved_complaints} Resolved</span>
-            <span style={{ color: '#fbbf24' }}>⏳ {summary?.in_progress_complaints} In Progress</span>
+          <div style={{ marginTop: 12, fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+            <span style={{ color: '#34d399', fontWeight: 600 }}>{summary?.resolved_complaints?.toLocaleString()}</span> resolved · {summary?.in_progress_complaints?.toLocaleString()} active
           </div>
         </div>
 
-        <div className="glass-card" style={{ padding: '20px 24px' }}>
+        {/* KPI 2 */}
+        <div className="glass-card" style={{ padding: '22px 24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
-              <p style={{ fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-muted)' }}>
-                Active Alerts
-              </p>
-              <h2 style={{ fontSize: '2rem', fontWeight: 800, color: '#f87171', marginTop: 4 }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.05em' }}>
+                Active Warnings
+              </span>
+              <h2 style={{ fontSize: '2.1rem', fontWeight: 800, color: '#f87171', marginTop: 4, letterSpacing: '-0.03em' }}>
                 {summary?.active_alerts || 0}
               </h2>
             </div>
-            <div style={{ padding: 10, borderRadius: 'var(--radius-md)', background: 'rgba(239, 68, 68, 0.15)', color: '#f87171' }}>
-              <AlertTriangle size={20} />
+            <div style={{ padding: 10, borderRadius: 10, background: 'rgba(239, 68, 68, 0.12)', color: '#f87171' }}>
+              <AlertTriangle size={18} />
             </div>
           </div>
-          <div style={{ marginTop: 12, fontSize: '0.75rem', display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ color: '#ef4444', fontWeight: 700 }}>{summary?.critical_alerts} Critical Alerts</span>
+          <div style={{ marginTop: 12, fontSize: '0.78rem', display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ color: '#ef4444', fontWeight: 600 }}>{summary?.critical_alerts || 0} critical priority</span>
             <span 
               onClick={() => onNavigateTab('alerts')} 
               style={{ color: 'var(--primary)', cursor: 'pointer', fontWeight: 600 }}
             >
-              View Feed →
+              View Feed
             </span>
           </div>
         </div>
 
-        <div className="glass-card" style={{ padding: '20px 24px' }}>
+        {/* KPI 3 */}
+        <div className="glass-card" style={{ padding: '22px 24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
-              <p style={{ fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.05em' }}>
                 Active Incidents
-              </p>
-              <h2 style={{ fontSize: '2rem', fontWeight: 800, color: '#fbbf24', marginTop: 4 }}>
+              </span>
+              <h2 style={{ fontSize: '2.1rem', fontWeight: 800, color: '#fbbf24', marginTop: 4, letterSpacing: '-0.03em' }}>
                 {summary?.open_incidents || 0}
               </h2>
             </div>
-            <div style={{ padding: 10, borderRadius: 'var(--radius-md)', background: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24' }}>
-              <Flame size={20} />
+            <div style={{ padding: 10, borderRadius: 10, background: 'rgba(245, 158, 11, 0.12)', color: '#fbbf24' }}>
+              <Flame size={18} />
             </div>
           </div>
-          <div style={{ marginTop: 12, fontSize: '0.75rem', display: 'flex', justifyContent: 'space-between' }}>
-            <span>{summary?.total_incidents} Total Logged</span>
+          <div style={{ marginTop: 12, fontSize: '0.78rem', display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ color: 'var(--text-secondary)' }}>Crews deployed in field</span>
             <span 
               onClick={() => onNavigateTab('incidents')} 
               style={{ color: 'var(--primary)', cursor: 'pointer', fontWeight: 600 }}
             >
-              Track Pipeline →
+              Work Orders
             </span>
           </div>
         </div>
 
-        <div className="glass-card" style={{ padding: '20px 24px' }}>
+        {/* KPI 4 */}
+        <div className="glass-card" style={{ padding: '22px 24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
-              <p style={{ fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-muted)' }}>
-                Avg Resolution SLA
-              </p>
-              <h2 style={{ fontSize: '2rem', fontWeight: 800, color: '#34d399', marginTop: 4 }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.05em' }}>
+                Resolution SLA
+              </span>
+              <h2 style={{ fontSize: '2.1rem', fontWeight: 800, color: '#34d399', marginTop: 4, letterSpacing: '-0.03em' }}>
                 {summary?.avg_resolution_hours ? `${summary.avg_resolution_hours}h` : '48h'}
               </h2>
             </div>
-            <div style={{ padding: 10, borderRadius: 'var(--radius-md)', background: 'rgba(16, 185, 129, 0.15)', color: '#34d399' }}>
-              <Clock size={20} />
+            <div style={{ padding: 10, borderRadius: 10, background: 'rgba(16, 185, 129, 0.12)', color: '#34d399' }}>
+              <Clock size={18} />
             </div>
           </div>
-          <div style={{ marginTop: 12, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            Within target standard for NMC zone teams
-          </div>
-        </div>
-
-        <div className="glass-card" style={{ padding: '20px 24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <p style={{ fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-muted)' }}>
-                High-Risk Wards
-              </p>
-              <h2 style={{ fontSize: '2rem', fontWeight: 800, color: '#c084fc', marginTop: 4 }}>
-                {summary?.high_risk_wards || 0}
-              </h2>
-            </div>
-            <div style={{ padding: 10, borderRadius: 'var(--radius-md)', background: 'rgba(168, 85, 247, 0.15)', color: '#c084fc' }}>
-              <FileWarning size={20} />
-            </div>
-          </div>
-          <div style={{ marginTop: 12, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            Risk Score &gt; 70 requiring early intervention
+          <div style={{ marginTop: 12, fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+            City standard compliant (Target: ≤ 72h)
           </div>
         </div>
       </div>
 
-      {/* Main Charts Row */}
+      {/* Row 1: Main Velocity Trend & Category Distribution */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(460px, 1fr))',
         gap: 20,
       }}>
         {/* Trend Area Chart */}
-        <div className="glass-card" style={{ padding: 24, minHeight: 360 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <div className="glass-card" style={{ padding: 24, minHeight: 340 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
             <div>
-              <h3 style={{ fontSize: '1.1rem', color: '#ffffff' }}>Grievance Inflow Velocity (30 Days)</h3>
-              <p style={{ fontSize: '0.8rem' }}>Daily citizen complaints registered across Nagpur zones</p>
+              <h3 style={{ fontSize: '1.05rem', color: '#ffffff' }}>Grievance Velocity (30 Days)</h3>
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Daily citizen reports registered across Nagpur zones</p>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', color: '#38bdf8' }}>
               <TrendingUp size={14} />
-              <span>30-Day Trend</span>
+              <span>Telemetry Feed</span>
             </div>
           </div>
 
-          <div style={{ width: '100%', height: 260 }}>
+          <div style={{ width: '100%', height: 230 }}>
             <ResponsiveContainer>
               <AreaChart data={trend}>
                 <defs>
                   <linearGradient id="trendGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.5}/>
+                    <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.4}/>
                     <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0.0}/>
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.05)" />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.04)" />
                 <XAxis 
                   dataKey="date" 
                   stroke="var(--text-muted)" 
                   fontSize={11}
                   tickFormatter={(val) => val.slice(5)}
+                  axisLine={{ stroke: 'rgba(255,255,255,0.08)' }}
+                  tickLine={false}
                 />
-                <YAxis stroke="var(--text-muted)" fontSize={11} />
+                <YAxis 
+                  stroke="var(--text-muted)" 
+                  fontSize={11}
+                  axisLine={false}
+                  tickLine={false}
+                />
                 <Tooltip 
                   contentStyle={{ 
-                    backgroundColor: 'rgba(15, 23, 42, 0.95)', 
-                    borderColor: 'var(--border-subtle)',
+                    backgroundColor: '#0c1322', 
+                    borderColor: 'rgba(255, 255, 255, 0.1)',
                     borderRadius: 8,
                     fontSize: 12,
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.5)'
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.5)'
                   }} 
                 />
                 <Area 
                   type="monotone" 
                   dataKey="count" 
-                  name="Complaints" 
+                  name="Reports" 
                   stroke="#38bdf8" 
                   strokeWidth={2}
                   fillOpacity={1} 
@@ -277,30 +269,30 @@ export default function DashboardView({ onSelectWard, onNavigateTab }) {
         </div>
 
         {/* Complaints Breakdown Bar Chart */}
-        <div className="glass-card" style={{ padding: 24, minHeight: 360 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <div>
-              <h3 style={{ fontSize: '1.1rem', color: '#ffffff' }}>Complaints by Root Category</h3>
-              <p style={{ fontSize: '0.8rem' }}>Distribution of reported water utility issues</p>
-            </div>
+        <div className="glass-card" style={{ padding: 24, minHeight: 340 }}>
+          <div style={{ marginBottom: 20 }}>
+            <h3 style={{ fontSize: '1.05rem', color: '#ffffff' }}>Grievances by Category</h3>
+            <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Root cause distribution of citizen complaints</p>
           </div>
 
-          <div style={{ width: '100%', height: 260 }}>
+          <div style={{ width: '100%', height: 230 }}>
             <ResponsiveContainer>
-              <BarChart data={types} layout="vertical" margin={{ left: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.05)" />
-                <XAxis type="number" stroke="var(--text-muted)" fontSize={11} />
+              <BarChart data={types} layout="vertical" margin={{ left: 10 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.04)" />
+                <XAxis type="number" stroke="var(--text-muted)" fontSize={11} axisLine={false} tickLine={false} />
                 <YAxis 
                   type="category" 
                   dataKey="category" 
                   stroke="var(--text-secondary)" 
                   fontSize={11}
                   width={110}
+                  axisLine={false}
+                  tickLine={false}
                 />
                 <Tooltip 
                   contentStyle={{ 
-                    backgroundColor: 'rgba(15, 23, 42, 0.95)', 
-                    borderColor: 'var(--border-subtle)',
+                    backgroundColor: '#0c1322', 
+                    borderColor: 'rgba(255, 255, 255, 0.1)',
                     borderRadius: 8,
                     fontSize: 12
                   }} 
@@ -316,18 +308,18 @@ export default function DashboardView({ onSelectWard, onNavigateTab }) {
         </div>
       </div>
 
-      {/* Second Charts / Table Row */}
+      {/* Row 2: Severity Triage + High Risk Ward Focus */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
+        gridTemplateColumns: 'minmax(300px, 360px) 1fr',
         gap: 20,
       }}>
-        {/* Severity Donut Chart */}
+        {/* Severity Donut */}
         <div className="glass-card" style={{ padding: 24 }}>
-          <h3 style={{ fontSize: '1.1rem', color: '#ffffff', marginBottom: 4 }}>Severity Distribution</h3>
-          <p style={{ fontSize: '0.8rem', marginBottom: 16 }}>Grievance triage priority classification</p>
+          <h3 style={{ fontSize: '1.05rem', color: '#ffffff', marginBottom: 2 }}>Severity Triage</h3>
+          <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: 12 }}>Priority classification</p>
 
-          <div style={{ width: '100%', height: 240 }}>
+          <div style={{ width: '100%', height: 210 }}>
             <ResponsiveContainer>
               <PieChart>
                 <Pie
@@ -336,45 +328,46 @@ export default function DashboardView({ onSelectWard, onNavigateTab }) {
                   nameKey="severity"
                   cx="50%"
                   cy="50%"
-                  innerRadius={60}
-                  outerRadius={85}
-                  paddingAngle={4}
+                  innerRadius={55}
+                  outerRadius={75}
+                  paddingAngle={3}
                 >
                   {severities.map((entry, index) => (
-                    <Cell key={`sev-${index}`} fill={SEVERITY_COLORS[entry.severity] || '#94a3b8'} />
+                    <Cell key={`sev-${index}`} fill={SEVERITY_COLORS[entry.severity] || '#64748b'} />
                   ))}
                 </Pie>
                 <Tooltip 
                   contentStyle={{ 
-                    backgroundColor: 'rgba(15, 23, 42, 0.95)', 
-                    borderColor: 'var(--border-subtle)',
+                    backgroundColor: '#0c1322', 
+                    borderColor: 'rgba(255, 255, 255, 0.1)',
                     borderRadius: 8,
                     fontSize: 12
                   }} 
                 />
                 <Legend 
                   verticalAlign="bottom" 
-                  height={36} 
-                  formatter={(val) => <span style={{ color: 'var(--text-secondary)', fontSize: 12, textTransform: 'capitalize' }}>{val}</span>} 
+                  height={32} 
+                  formatter={(val) => <span style={{ color: 'var(--text-secondary)', fontSize: 11, textTransform: 'capitalize' }}>{val}</span>} 
                 />
               </PieChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* High-Risk Ward Matrix */}
-        <div className="glass-card" style={{ padding: 24, gridColumn: 'span 2' }}>
+        {/* Priority Ward Matrix (Top 5 Focus) */}
+        <div className="glass-card" style={{ padding: 24 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
             <div>
-              <h3 style={{ fontSize: '1.1rem', color: '#ffffff' }}>High-Risk Ward Prioritization</h3>
-              <p style={{ fontSize: '0.8rem' }}>AI risk ranking combining complaint clusters & pipe age</p>
+              <h3 style={{ fontSize: '1.05rem', color: '#ffffff' }}>High-Risk Ward Prioritization</h3>
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Top municipal sectors requiring proactive mitigation</p>
             </div>
             <button 
               onClick={() => onNavigateTab('map')} 
               className="btn btn-secondary btn-sm"
+              style={{ fontSize: '0.75rem' }}
             >
-              <ExternalLink size={14} />
-              <span>Explore on GIS Map</span>
+              <span>Open GIS Map</span>
+              <ChevronRight size={13} />
             </button>
           </div>
 
@@ -382,12 +375,11 @@ export default function DashboardView({ onSelectWard, onNavigateTab }) {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Ward ID</th>
-                  <th>Ward Name</th>
+                  <th>Ward Sector</th>
                   <th>Zone</th>
                   <th>Complaints</th>
-                  <th>Risk Score</th>
-                  <th>Active Alerts</th>
+                  <th>Risk Index</th>
+                  <th>Status</th>
                   <th>Action</th>
                 </tr>
               </thead>
@@ -397,19 +389,20 @@ export default function DashboardView({ onSelectWard, onNavigateTab }) {
                   const isMed = w.risk_score >= 40 && w.risk_score < 70;
                   return (
                     <tr key={w.ward_id}>
-                      <td style={{ fontWeight: 700, color: '#ffffff' }}>{w.ward_id}</td>
-                      <td>{w.ward_name}</td>
+                      <td style={{ fontWeight: 600, color: '#ffffff' }}>
+                        {w.ward_name} <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>({w.ward_id})</span>
+                      </td>
                       <td>{w.zone_name}</td>
                       <td>{w.complaint_count}</td>
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <div style={{
                             flex: 1,
-                            height: 6,
-                            background: 'rgba(255, 255, 255, 0.1)',
+                            height: 5,
+                            background: 'rgba(255, 255, 255, 0.08)',
                             borderRadius: 4,
                             overflow: 'hidden',
-                            maxWidth: 80
+                            maxWidth: 70
                           }}>
                             <div style={{
                               width: `${w.risk_score}%`,
@@ -419,7 +412,7 @@ export default function DashboardView({ onSelectWard, onNavigateTab }) {
                             }} />
                           </div>
                           <span style={{
-                            fontSize: '0.8rem',
+                            fontSize: '0.78rem',
                             fontWeight: 700,
                             color: isHigh ? '#f87171' : isMed ? '#fbbf24' : '#34d399'
                           }}>
@@ -429,9 +422,13 @@ export default function DashboardView({ onSelectWard, onNavigateTab }) {
                       </td>
                       <td>
                         {w.active_alerts > 0 ? (
-                          <span className="badge badge-critical">{w.active_alerts} Alerts</span>
+                          <span className="badge badge-critical" style={{ fontSize: '0.68rem', padding: '2px 8px' }}>
+                            {w.active_alerts} Alerts
+                          </span>
                         ) : (
-                          <span className="badge badge-low">Normal</span>
+                          <span className="badge badge-low" style={{ fontSize: '0.68rem', padding: '2px 8px' }}>
+                            Optimal
+                          </span>
                         )}
                       </td>
                       <td>
@@ -441,7 +438,7 @@ export default function DashboardView({ onSelectWard, onNavigateTab }) {
                             onNavigateTab('map');
                           }}
                           className="btn btn-secondary btn-sm"
-                          style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+                          style={{ padding: '3px 8px', fontSize: '0.72rem' }}
                         >
                           Locate
                         </button>

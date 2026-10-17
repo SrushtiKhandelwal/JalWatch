@@ -1,7 +1,7 @@
 """
-Incidents API — Incident Response and Tracking (Module 6).
+Incidents API: Work Order & Incident Response Management.
 
-Incident lifecycle:  reported → open → assigned → in_progress → resolved → closed
+Incident lifecycle: reported -> open -> assigned -> in_progress -> resolved -> closed
 """
 
 from fastapi import APIRouter, Depends, Query, HTTPException

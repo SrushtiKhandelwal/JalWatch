@@ -1,5 +1,5 @@
 """
-JalWatch API — main application entry point.
+JalWatch API: Enterprise Water Utility Operations Platform.
 
 Run with:
     cd JalWatch
@@ -18,23 +18,23 @@ from .routers import complaints, wards, alerts, incidents, dashboard, prediction
 # Create database tables on startup (if they don't exist)
 Base.metadata.create_all(bind=engine)
 
-# ── FastAPI App ──────────────────────────────────────────
+# -- FastAPI App ------------------------------------------
 
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.VERSION,
     description=(
-        "JalWatch — Intelligent Water Monitoring & Grievance Redressal System "
+        "JalWatch: Intelligent Water Monitoring & Grievance Redressal System "
         "for Nagpur Municipal Corporation.\n\n"
-        "**Modules covered by this API:**\n"
-        "- Module 5: Early Warning and Alert System\n"
-        "- Module 6: Incident Response and Tracking\n"
-        "- Module 7: Admin Dashboard and Analytics\n\n"
-        "Mock predictions are provided for Module 3 & 4 (Member 1 integration point)."
+        "Features:\n"
+        "- SCADA & Telemetry Alert Feed\n"
+        "- Incident Redressal & Field Crew Dispatch\n"
+        "- Executive Dashboard & Spatial Analytics\n"
+        "- Machine Learning Infrastructure Risk Prediction"
     ),
 )
 
-# ── CORS — allow frontend dev server to call this API ────
+# -- CORS: allow frontend dev server to call this API ----
 
 app.add_middleware(
     CORSMiddleware,
@@ -44,7 +44,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ── Register all routers ────────────────────────────────
+# -- Register all routers --------------------------------
 
 app.include_router(dashboard.router, prefix=settings.API_PREFIX)
 app.include_router(complaints.router, prefix=settings.API_PREFIX)
@@ -54,11 +54,11 @@ app.include_router(incidents.router, prefix=settings.API_PREFIX)
 app.include_router(predictions.router, prefix=settings.API_PREFIX)
 
 
-# ── Root & health endpoints ──────────────────────────────
+# -- Root & health endpoints ------------------------------
 
 @app.get("/", tags=["Health"])
 def root():
-    """API root — shows basic info and links to docs."""
+    """API root: shows basic info and links to docs."""
     return {
         "app": settings.APP_NAME,
         "version": settings.VERSION,

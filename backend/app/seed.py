@@ -1,5 +1,5 @@
 """
-Database Seeder — loads real data from CSVs + generates mock alerts and incidents.
+Database Seeder: Loads real municipal data from CSVs + telemetry alerts and incidents.
 
 Usage:
     cd JalWatch
@@ -29,7 +29,7 @@ def seed_database(force: bool = False):
     """Create tables and populate with data."""
 
     if force:
-        print("⚠  Force mode — dropping all tables...")
+        print("Force mode: dropping all tables...")
         Base.metadata.drop_all(bind=engine)
 
     print("📦 Creating database tables...")

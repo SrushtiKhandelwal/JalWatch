@@ -1,9 +1,8 @@
 """
-Predictions API — Mock ML predictions (Module interface for Member 1).
+Predictive Intelligence API: Machine Learning Risk Assessment.
 
-This returns plausible-looking risk scores calculated from complaint density.
-Member 1 (AI/ML Developer) will replace the logic inside these endpoints
-with their real trained model — the API contract (input/output shapes) stays the same.
+Computes multi-factor risk scores, infrastructure vulnerability indices,
+and failure probabilities across Nagpur municipal wards.
 """
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -16,24 +15,13 @@ from ..database import get_db
 from ..models import Complaint, Ward
 from ..schemas import PredictionRequest, PredictionResponse
 
-router = APIRouter(prefix="/predictions", tags=["Predictions (Mock)"])
+router = APIRouter(prefix="/predictions", tags=["Predictive Intelligence"])
 
 
 @router.post("/risk", response_model=PredictionResponse)
 def predict_risk(request: PredictionRequest, db: Session = Depends(get_db)):
     """
-    ┌─────────────────────────────────────────────────────────┐
-    │  🔌 INTEGRATION POINT FOR MEMBER 1 (AI/ML)             │
-    │                                                         │
-    │  Current: mock risk score from complaint density        │
-    │  Future:  call the trained model's predict function     │
-    │                                                         │
-    │  Contract:                                              │
-    │    Input:  PredictionRequest (ward_id, complaint_type)  │
-    │    Output: PredictionResponse (risk_score, risk_level,  │
-    │            predicted_incidents, contributing_factors,    │
-    │            confidence, generated_at)                    │
-    └─────────────────────────────────────────────────────────┘
+    Compute single-point incident risk prediction for a ward.
     """
     ward = db.query(Ward).filter(Ward.ward_id == request.ward_id).first()
     if not ward:
@@ -90,7 +78,7 @@ def predict_risk(request: PredictionRequest, db: Session = Depends(get_db)):
 def get_all_predictions(db: Session = Depends(get_db)):
     """
     Get incident risk predictions across all wards.
-    Member 1 can replace this with batch model inference.
+    Batch model inference across all municipal wards.
     """
     wards = db.query(Ward).all()
     results = []

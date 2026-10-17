@@ -1,1 +1,1 @@
-# Routers package — each file here is a group of related API endpoints
+# Routers package: each file here defines a domain group of related API endpoints.

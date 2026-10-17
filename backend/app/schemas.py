@@ -1,9 +1,9 @@
 """
-Pydantic schemas — define the shape of data going IN and OUT of the API.
+Pydantic schemas: Define the structure of data in the API.
 
-These are NOT database models. They are contracts:
-  - Request schemas  → what the frontend sends
-  - Response schemas → what the API returns
+These are application data contracts:
+  - Request schemas  -> payload sent by clients
+  - Response schemas -> payload returned by API
 """
 
 from pydantic import BaseModel, ConfigDict
@@ -11,9 +11,7 @@ from typing import Optional, List
 from datetime import datetime
 
 
-# ╔═══════════════════════════════════════════════════════════╗
-# ║  WARD SCHEMAS                                            ║
-# ╚═══════════════════════════════════════════════════════════╝
+# [ WARD SCHEMAS ]
 
 class WardResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -29,7 +27,7 @@ class WardResponse(BaseModel):
 
 
 class WardStats(BaseModel):
-    """Per-ward analytics — used on the dashboard and ward detail page."""
+    """Per-ward analytics: used on the dashboard and ward detail view."""
     ward_id: str
     ward_name: str
     zone_name: str
@@ -40,7 +38,7 @@ class WardStats(BaseModel):
     active_alerts: int
     active_incidents: int
     avg_resolution_hours: Optional[float] = None
-    risk_score: float = 0.0   # Member 1 replaces with real score
+    risk_score: float = 0.0
 
 
 # ╔═══════════════════════════════════════════════════════════╗
@@ -208,9 +206,7 @@ class WardRiskSummary(BaseModel):
     active_alerts: int
 
 
-# ╔═══════════════════════════════════════════════════════════╗
-# ║  PREDICTION SCHEMAS (Mock — Member 1 replaces)           ║
-# ╚═══════════════════════════════════════════════════════════╝
+# [ PREDICTION SCHEMAS: Machine Learning Inference ]
 
 class PredictionRequest(BaseModel):
     ward_id: str
