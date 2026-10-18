@@ -5,9 +5,24 @@
 
 const BASE_URL = '/api';
 
+function complaintQuery(params = {}) {
+  const searchParams = new URLSearchParams();
+  const page = params.page || (params.skip !== undefined ? Math.floor(params.skip / (params.limit || 20)) + 1 : 1);
+  const pageSize = params.page_size || params.limit || 25;
+  searchParams.set('page', page);
+  searchParams.set('page_size', pageSize);
+  if (params.ward_id) searchParams.set('ward_id', params.ward_id);
+  if (params.category || params.complaint_type) searchParams.set('complaint_type', params.category || params.complaint_type);
+  if (params.status) searchParams.set('status', params.status);
+  if (params.severity) searchParams.set('severity', params.severity);
+  if (params.search) searchParams.set('search', params.search);
+  return `${BASE_URL}/complaints?${searchParams}`;
+}
+
 async function fetchJson(url, options = {}) {
   try {
     const res = await fetch(url, {
+      credentials: 'same-origin',
       headers: {
         'Content-Type': 'application/json',
         ...options.headers,
@@ -16,7 +31,10 @@ async function fetchJson(url, options = {}) {
     });
     if (!res.ok) {
       const errorData = await res.json().catch(() => ({}));
-      throw new Error(errorData.detail || `Request failed with status ${res.status}`);
+      if (res.status === 401 && !url.includes('/auth/')) {
+        window.dispatchEvent(new Event('jalwatch:unauthorized'));
+      }
+      throw new Error(typeof errorData.detail === 'string' ? errorData.detail : `Request failed with status ${res.status}`);
     }
     return await res.json();
   } catch (err) {
@@ -26,32 +44,21 @@ async function fetchJson(url, options = {}) {
 }
 
 export const api = {
+  getSession: () => fetchJson(`${BASE_URL}/auth/me`),
+  login: (password) => fetchJson(`${BASE_URL}/auth/login`, {
+    method: 'POST', body: JSON.stringify({ password }),
+  }),
+  logout: () => fetchJson(`${BASE_URL}/auth/logout`, { method: 'POST' }),
   // Dashboard & Analytics Services
   getDashboardSummary: () => fetchJson(`${BASE_URL}/dashboard/summary`),
   getComplaintsByType: () => fetchJson(`${BASE_URL}/dashboard/complaints-by-type`),
   getComplaintsBySeverity: () => fetchJson(`${BASE_URL}/dashboard/complaints-by-severity`),
   getDailyTrend: (days = 30) => fetchJson(`${BASE_URL}/dashboard/daily-trend?days=${days}`),
-  getWardRiskOverview: (limit = 15) => fetchJson(`${BASE_URL}/dashboard/ward-risk-overview?limit=${limit}`),
+  getWardPriorities: (days = 30) => fetchJson(`${BASE_URL}/dashboard/ward-priorities?days=${days}`),
 
   // Complaints
-  getComplaints: async (params = {}) => {
-    const searchParams = new URLSearchParams();
-    const page = params.page || (params.skip !== undefined ? Math.floor(params.skip / (params.limit || 20)) + 1 : 1);
-    const pageSize = params.page_size || params.limit || 25;
-    
-    searchParams.set('page', page);
-    searchParams.set('page_size', pageSize);
-    if (params.ward_id) searchParams.set('ward_id', params.ward_id);
-    if (params.category || params.complaint_type) {
-      searchParams.set('complaint_type', params.category || params.complaint_type);
-    }
-    if (params.status) searchParams.set('status', params.status);
-    if (params.severity) searchParams.set('severity', params.severity);
-
-    const queryString = searchParams.toString();
-    const res = await fetchJson(`${BASE_URL}/complaints${queryString ? `?${queryString}` : ''}`);
-    return res.complaints || res;
-  },
+  getComplaintsPage: (params = {}) => fetchJson(complaintQuery(params)),
+  getComplaints: async (params = {}) => (await fetchJson(complaintQuery(params))).complaints,
   getComplaintById: (id) => fetchJson(`${BASE_URL}/complaints/${id}`),
 
   // Wards & Spatial GIS
@@ -66,9 +73,11 @@ export const api = {
     if (params.severity) searchParams.set('severity', params.severity);
     if (params.ward_id) searchParams.set('ward_id', params.ward_id);
     if (params.page_size || params.limit) searchParams.set('page_size', params.page_size || params.limit);
+    if (params.page) searchParams.set('page', params.page);
     const qs = searchParams.toString();
     return fetchJson(`${BASE_URL}/alerts${qs ? `?${qs}` : ''}`);
   },
+  getActiveAlertCount: () => fetchJson(`${BASE_URL}/alerts/active-count`),
   createAlert: (data) =>
     fetchJson(`${BASE_URL}/alerts`, {
       method: 'POST',
@@ -79,18 +88,24 @@ export const api = {
         locality_id: data.locality_id || null,
         title: data.title,
         description: data.description || '',
-        risk_score: data.risk_score || 0.75,
-        source: data.source || 'system',
+        risk_score: data.risk_score ?? 0,
       }),
     }),
   acknowledgeAlert: (id) =>
-    fetchJson(`${BASE_URL}/alerts/${id}/acknowledge`, {
+    fetchJson(`${BASE_URL}/alerts/${id}`, {
       method: 'PATCH',
+      body: JSON.stringify({ status: 'acknowledged' }),
     }),
   resolveAlert: (id) =>
-    fetchJson(`${BASE_URL}/alerts/${id}/resolve`, {
+    fetchJson(`${BASE_URL}/alerts/${id}`, {
       method: 'PATCH',
+      body: JSON.stringify({ status: 'resolved' }),
     }),
+  dismissAlert: (id) =>
+    fetchJson(`${BASE_URL}/alerts/${id}`, {
+      method: 'PATCH', body: JSON.stringify({ status: 'dismissed' }),
+    }),
+  getAlertEvents: (id) => fetchJson(`${BASE_URL}/alerts/${id}/events`),
 
   // Incidents Response & Work Orders
   getIncidents: (params = {}) => {
@@ -99,9 +114,11 @@ export const api = {
     if (params.severity) searchParams.set('severity', params.severity);
     if (params.ward_id) searchParams.set('ward_id', params.ward_id);
     if (params.page_size || params.limit) searchParams.set('page_size', params.page_size || params.limit);
+    if (params.page) searchParams.set('page', params.page);
     const qs = searchParams.toString();
     return fetchJson(`${BASE_URL}/incidents${qs ? `?${qs}` : ''}`);
   },
+  getIncidentEvents: (incidentId) => fetchJson(`${BASE_URL}/incidents/${encodeURIComponent(incidentId)}/events`),
   createIncident: (data) =>
     fetchJson(`${BASE_URL}/incidents`, {
       method: 'POST',
@@ -110,10 +127,13 @@ export const api = {
         description: data.description || '',
         ward_id: data.ward_id,
         locality_id: data.locality_id || null,
-        latitude: data.latitude || 21.1458,
-        longitude: data.longitude || 79.0882,
-        incident_type: data.incident_type || 'supply_failure',
-        severity: data.severity || 'high',
+        latitude: data.latitude,
+        longitude: data.longitude,
+        incident_type: data.incident_type,
+        severity: data.severity,
+        assigned_to: data.assigned_to || null,
+        related_alert_id: data.related_alert_id || null,
+        related_complaint_ids: data.related_complaint_ids || [],
       }),
     }),
   updateIncidentStatus: (incidentId, status, notes = '', assignedTo = '') =>

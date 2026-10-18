@@ -1,125 +1,116 @@
-# JalWatch: Technical Integration Guide & API Contracts
+# JalWatch integration and handoff guide
 
-This guide documents the system architecture, integration interfaces, and handoff points across the **JalWatch** system.
+## Current ownership
 
----
+Member 3 owns the FastAPI operations API, alert and incident workflows, and dashboard. Member 2 will replace the current map preview with validated ward, locality, pipe, node, and complaint layers. Member 1 will train and validate the incident model. The UI deliberately keeps those two unfinished integrations separate from measured operations data.
 
-## Quickstart: Running JalWatch
+The bundled SQLite data is **synthetic demonstration data**: 38 wards, 10,000 seeded complaints, 30 seeded alerts, and 20 seeded incidents. It is useful for UI development and contract testing. It is not live telemetry or an official municipal feed.
 
-### 1. Prerequisites
-- Python 3.11+
-- Node.js 18+ & npm
+## Run locally
 
-### 2. Backend (FastAPI + SQLite/PostgreSQL)
-```bash
-# From project root (JalWatch/)
-pip install -r requirements.txt
+From the project root:
 
-# Seed database with real Nagpur CSV data (38 wards, 10,000 complaints, telemetry alerts & incidents)
+```powershell
+python -m pip install -r requirements.txt
+Copy-Item backend\.env.example .env
+# Edit .env: set a unique administrator password and a random 32+ character secret.
 python -m backend.app.seed
-
-# Start FastAPI server
-python -m uvicorn backend.app.main:app --reload --host 127.0.0.1 --port 8000
+python -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000
 ```
-- Swagger Interactive Documentation: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
-- Health Check: [http://127.0.0.1:8000/health](http://127.0.0.1:8000/health)
 
-### 3. Frontend (Vite + React + Leaflet + Recharts)
-```bash
-cd frontend
-npm install
+In a second terminal:
+
+```powershell
+Set-Location frontend
+npm ci
 npm run dev
 ```
-- Access web application: [http://127.0.0.1:5173](http://127.0.0.1:5173)
 
----
+Open `http://127.0.0.1:5173`, then sign in with `JALWATCH_ADMIN_PASSWORD`. All data endpoints require an eight-hour, HTTP-only administrator session cookie. `/health` returns 503 until credentials are configured. For HTTPS deployment, set `JALWATCH_COOKIE_SECURE=true` and `JALWATCH_CORS_ORIGINS` to the exact frontend origin. Use an institutional identity provider and managed migrations before multi-user or public deployment.
 
-## Subsystem Architecture & Responsibilities
+Run checks from the project root:
 
-| Subsystem | Scope | Key Capabilities | Deliverable |
-|:---|:---|:---|:---|
-| **AI / Machine Learning** | Incident Risk Prediction | Feature extraction, pattern detection, risk scoring | Inference functions in `backend/app/routers/predictions.py` |
-| **Data & GIS** | Spatial Layers & Networks | Ward boundaries, pipe lines, junction nodes | PostGIS spatial queries in `backend/app/routers/wards.py` |
-| **Operations Center** | Alerts, Work Orders, Dashboard | Early warning alerts, work order dispatch, analytics | Complete REST API & React operations console |
+```powershell
+python -m unittest discover -s tests -v
+Set-Location frontend
+npm run build
+npm run lint
+```
 
----
+## Member 3 API contract
 
-## Machine Learning Integration Interface
+All paths below start with `/api` and require the administrator session unless marked public.
 
-### Location
-File: [`backend/app/routers/predictions.py`](file:///c:/Users/srush/OneDrive/Desktop/JalWatch/backend/app/routers/predictions.py)
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `POST` | `/auth/login` | Public sign-in with `{ "password": "..." }` |
+| `GET` | `/auth/me` | Check the current session |
+| `POST` | `/auth/logout` | Clear the session cookie |
+| `GET` | `/incidents` | Recent incidents; filters: `status`, `severity`, `ward_id`, `page`, `page_size` |
+| `POST` | `/incidents` | Create and optionally assign a ticket |
+| `GET` | `/incidents/{incident_id}` | Read one ticket |
+| `PATCH` | `/incidents/{incident_id}/status` | Advance one lifecycle stage |
+| `GET` | `/incidents/{incident_id}/events` | Append-only status history |
+| `GET` | `/alerts` | Recent alerts with status, severity, ward, and pagination filters |
+| `GET` | `/alerts/active-count` | Accurate active count, independent of list pagination |
+| `POST` | `/alerts` | Create a manual ward alert |
+| `POST` | `/alerts/evaluate` | Evaluate a validated model signal |
+| `PATCH` | `/alerts/{id}` | Acknowledge, resolve, or dismiss |
+| `GET` | `/alerts/{id}/events` | Append-only status history |
+| `GET` | `/dashboard/summary` | Measured city totals and average complaint resolution time |
+| `GET` | `/dashboard/complaints-by-type` | Complaint type counts |
+| `GET` | `/dashboard/complaints-by-severity` | Complaint severity counts |
+| `GET` | `/dashboard/daily-trend?days=30` | Daily series including zero-report days |
+| `GET` | `/dashboard/ward-priorities?days=30` | Recent reports and active alerts by ward |
 
-### Endpoints
-1. **Single Inference Endpoint:** `POST /api/predictions/risk`
-   - **Input:**
-     ```json
-     {
-       "ward_id": "W001",
-       "complaint_type": "low_pressure"
-     }
-     ```
-   - **Output:**
-     ```json
-     {
-       "ward_id": "W001",
-       "risk_score": 0.85,
-       "risk_level": "critical",
-       "predicted_incidents": 8,
-       "contributing_factors": [
-         "High complaint volume in ward",
-         "Acoustic anomaly detected"
-       ],
-       "confidence": 0.92,
-       "generated_at": "2026-10-17T22:00:00Z"
-     }
-     ```
+Incident creation example:
 
-2. **Batch / Ward Rankings Endpoint:** `GET /api/predictions/risk`
-   - Returns array of `{ ward_id, ward_name, risk_score, severity_prediction, confidence, recommended_action }` used directly by the Executive Dashboard and AI Risk Models view.
+```json
+{
+  "title": "Feeder main rupture",
+  "description": "Reported near the north junction",
+  "ward_id": "W001",
+  "latitude": 21.2,
+  "longitude": 79.085,
+  "incident_type": "pipe_burst",
+  "severity": "high",
+  "assigned_to": "Zone Response Crew",
+  "related_alert_id": null,
+  "related_complaint_ids": []
+}
+```
 
----
+Coordinates are required and never silently replaced with the city center. `ward_id` and linked records are validated. Providing `assigned_to` creates the ticket in `assigned`; otherwise it starts in `reported`. New IDs are opaque `INC-...` values; clients must use the returned `incident_id`.
 
-## GIS & Water Network Integration Interface
+The permitted status sequence is `reported → open → assigned → in_progress → resolved → closed`. Assignment requires a crew. Resolution requires nonempty notes. A repeated request for the current status is idempotent; skipping or reversing a stage returns 409. Each accepted change creates an event record.
 
-### Location
-Files: [`backend/app/routers/wards.py`](file:///c:/Users/srush/OneDrive/Desktop/JalWatch/backend/app/routers/wards.py) and [`backend/app/models.py`](file:///c:/Users/srush/OneDrive/Desktop/JalWatch/backend/app/models.py)
+Manual alert creation sets `source=manual`. Alert statuses are `active → acknowledged → resolved`, with direct `active → resolved` and dismissal from active or acknowledged also allowed. Invalid reversals return 409. Creating an alert only records it in JalWatch; external SMS or email broadcast is not implemented.
 
-### Data Sources
-- `data/raw/wards_master.csv` (38 Nagpur wards with center coordinates)
-- `data/raw/water_network_nodes.csv` (802 junctions/pumps/reservoirs)
-- `data/raw/water_network_pipes.csv` (1,452 pipe segments with diameter & age)
+## Member 1 model handoff
 
-### Network Layers
-1. **Ward GeoJSON Boundaries:**
-   - The `Ward` table in `backend/app/models.py` includes a `boundary_geojson: Text` column.
-   - Populate this column with MultiPolygon coordinates from official shapefiles.
-2. **Network Pipes & Nodes:**
-   - Expose GeoJSON endpoints in `backend/app/routers/wards.py`:
-     - `GET /api/network/nodes` -> GeoJSON FeatureCollection of junctions & pumps
-     - `GET /api/network/pipes` -> GeoJSON FeatureCollection of pipe LineStrings
-   - The React Leaflet map (`frontend/src/components/MapView.jsx`) is configured with standard Leaflet layers and consumes GeoJSON directly with `L.geoJSON()`.
+Member 1 should provide calibrated incident risk in the range **0.0–1.0**, a severity, model version, UTC timestamp, and explainable factors. The operations API accepts this shape at `POST /api/alerts/evaluate`:
 
----
+```json
+{
+  "ward_id": "W001",
+  "risk_score": 0.86,
+  "severity_prediction": "high",
+  "model_version": "incident-risk-v1",
+  "contributing_factors": ["Recent complaint cluster"],
+  "generated_at": "2026-10-18T10:00:00Z"
+}
+```
 
-## Complete REST API Directory
+Only `high` or `critical` signals with score at least `0.70` create an alert. Signals older than 24 hours or more than five minutes in the future are rejected. An active or acknowledged model alert for the same ward suppresses another alert until the first is closed. The endpoint returns `{ alert_created, reason, alert }` so the caller can distinguish a new alert from a suppressed one. Members 1 and 3 should agree on calibration and threshold changes using evaluation results before changing this rule.
 
-| Method | Endpoint | Description | Scope |
-|:---|:---|:---|:---|
-| `GET` | `/health` | Server health check | Core Health |
-| `GET` | `/api/dashboard/summary` | Top-level KPI counts, resolution SLA, active alerts | Analytics |
-| `GET` | `/api/dashboard/complaints-by-type` | Grouped breakdown by category | Analytics |
-| `GET` | `/api/dashboard/complaints-by-severity` | Grouped breakdown by priority | Analytics |
-| `GET` | `/api/dashboard/complaint-trends` | 30/90 day daily complaint inflow | Analytics |
-| `GET` | `/api/dashboard/ward-risks` | Ward prioritization ranking | Analytics |
-| `GET` | `/api/complaints` | Paginated grievances with ward/type/status filters | Grievances |
-| `GET` | `/api/complaints/{id}` | Single complaint audit details | Grievances |
-| `GET` | `/api/wards` | 38 Nagpur wards with zone & coordinates | Spatial |
-| `GET` | `/api/alerts` | Filterable alert stream (critical, high, medium) | Telemetry |
-| `POST` | `/api/alerts` | Broadcast early warning alert | Telemetry |
-| `PATCH` | `/api/alerts/{id}/acknowledge`| Acknowledge alert | Telemetry |
-| `PATCH` | `/api/alerts/{id}/resolve` | Mark alert resolved | Telemetry |
-| `GET` | `/api/incidents` | Filterable incident work order list | Work Orders |
-| `POST` | `/api/incidents` | Create incident ticket & crew dispatch | Work Orders |
-| `PATCH` | `/api/incidents/{id}/status` | Advance lifecycle status & notes | Work Orders |
-| `GET` | `/api/predictions/risk` | Batch ML ward risk predictions | AI Risk Engine |
-| `POST` | `/api/predictions/risk` | Single complaint risk scoring | AI Risk Engine |
+The existing `/predictions/risk` router is still Member 1's prototype and is **not** used for dashboard priorities. Its present values are not a validated model. Member 1 should replace its implementation and UI only after model evaluation.
+
+## Member 2 data and GIS handoff
+
+Keep `ward_id` stable across complaints, alerts, incidents, predictions, and network features. Validate locality IDs, coordinates, missing values, and source provenance before loading. The current `boundary_geojson` values in the ward CSV are references to a PDF, not usable GeoJSON polygons.
+
+The map currently shows ward representative points and sampled complaint pins. Member 2 should add validated boundary polygons and GeoJSON endpoints for `/api/network/nodes` and `/api/network/pipes`, then connect them to the map. The provided node and pipe CSV rows are marked `synthetic` and must be labeled as a preview unless replaced by verified data.
+
+## Deployment limits
+
+This is a single-administrator implementation. It has no per-user roles, external dispatch integration, notification transport, validated ML model, or verified network geometry yet. Those capabilities should be added and tested before treating JalWatch as a live municipal operations system.

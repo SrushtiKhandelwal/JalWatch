@@ -58,7 +58,7 @@ export default function MapView({ selectedWardId }) {
         setLoading(true);
         const [wardsData, complaintsData] = await Promise.all([
           api.getWards(),
-          api.getComplaints({ limit: 120, category: activeCategory || undefined })
+          api.getComplaints({ limit: 100, category: activeCategory || undefined })
         ]);
         setWards(wardsData);
         setComplaints(complaintsData);
@@ -105,7 +105,7 @@ export default function MapView({ selectedWardId }) {
             onChange={(e) => setActiveCategory(e.target.value)}
             className="select"
           >
-            <option value="">All Categories (120 Sample Pins)</option>
+            <option value="">All Categories (100 Sample Pins)</option>
             <option value="Low Pressure">Low Pressure</option>
             <option value="Water Contamination">Water Contamination</option>
             <option value="Pipeline Leakage">Pipeline Leakage</option>
@@ -130,15 +130,16 @@ export default function MapView({ selectedWardId }) {
             zoom={12}
             style={{ width: '100%', height: '100%', background: '#0a0f1d' }}
           >
-            <ChangeMapView 
-              coords={selectedWard ? [selectedWard.representative_latitude, selectedWard.representative_longitude] : null} 
+            <ChangeMapView
+              coords={selectedWard ? [selectedWard.representative_latitude, selectedWard.representative_longitude] : null}
               zoom={14}
             />
 
-            {/* Dark Mode CartoDB Tile Layer */}
+            {/* Esri World Dark Gray Canvas (Open Enterprise GIS - No API Key Required) */}
             <TileLayer
-              attribution='&copy; <a href="https://carto.com/">CARTO</a>'
-              url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+              attribution='&copy; <a href="https://www.esri.com/">Esri</a>, HERE, Garmin'
+              url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}"
+              maxZoom={16}
             />
 
             {/* Ward Representative Markers */}

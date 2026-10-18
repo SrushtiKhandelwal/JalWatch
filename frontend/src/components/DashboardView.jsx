@@ -5,9 +5,7 @@ import {
   Flame, 
   TrendingUp, 
   Droplet,
-  ExternalLink,
   RefreshCw,
-  ShieldCheck,
   ChevronRight
 } from 'lucide-react';
 import { 
@@ -32,7 +30,8 @@ export default function DashboardView({ onSelectWard, onNavigateTab }) {
   const [types, setTypes] = useState([]);
   const [severities, setSeverities] = useState([]);
   const [trend, setTrend] = useState([]);
-  const [wardRisks, setWardRisks] = useState([]);
+  const [wardPriorities, setWardPriorities] = useState([]);
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -44,7 +43,7 @@ export default function DashboardView({ onSelectWard, onNavigateTab }) {
         api.getComplaintsByType(),
         api.getComplaintsBySeverity(),
         api.getDailyTrend(30),
-        api.getWardRiskOverview(6), // Top 6 wards for clean layout
+        api.getWardPriorities(30),
       ]);
       setSummary(sumRes);
       setTypes((typeRes || []).slice(0, 6).map(t => ({
@@ -53,13 +52,10 @@ export default function DashboardView({ onSelectWard, onNavigateTab }) {
       })));
       setSeverities(sevRes || []);
       setTrend(trendRes || []);
-      setWardRisks((wardRes || []).map(w => ({
-        ...w,
-        risk_score: Math.round(w.risk_score <= 1.0 ? w.risk_score * 100 : w.risk_score),
-        complaint_count: w.total_complaints !== undefined ? w.total_complaints : w.complaint_count
-      })));
+      setWardPriorities((wardRes || []).slice(0, 6));
+      setError('');
     } catch (err) {
-      console.error('Failed to load dashboard analytics:', err);
+      setError(err.message);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -74,7 +70,7 @@ export default function DashboardView({ onSelectWard, onNavigateTab }) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh', flexDirection: 'column', gap: 16 }}>
         <RefreshCw size={28} className="spin" color="var(--primary)" />
-        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Loading municipal telemetry...</p>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Loading operations data...</p>
       </div>
     );
   }
@@ -88,7 +84,7 @@ export default function DashboardView({ onSelectWard, onNavigateTab }) {
             Municipal Water Command Center
           </h1>
           <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: 4 }}>
-            Nagpur city-wide telemetry, grievance velocity, and spatial risk distribution across 38 wards.
+            Complaint, alert, and incident records across Nagpur wards.
           </p>
         </div>
 
@@ -99,9 +95,14 @@ export default function DashboardView({ onSelectWard, onNavigateTab }) {
           style={{ gap: 8 }}
         >
           <RefreshCw size={13} className={refreshing ? 'spin' : ''} />
-          <span>{refreshing ? 'Refreshing...' : 'Refresh Telemetry'}</span>
+          <span>{refreshing ? 'Refreshing...' : 'Refresh Data'}</span>
         </button>
       </div>
+
+      {error && <p role="alert" style={{ color: '#fca5a5' }}>Dashboard could not load: {error}</p>}
+      {summary?.latest_complaint_at && (
+        <p style={{ fontSize: '0.8rem' }}>Latest complaint record: {new Date(summary.latest_complaint_at).toLocaleString()}</p>
+      )}
 
       {/* 4 Clean Executive KPI Cards */}
       <div style={{
@@ -171,7 +172,7 @@ export default function DashboardView({ onSelectWard, onNavigateTab }) {
             </div>
           </div>
           <div style={{ marginTop: 12, fontSize: '0.78rem', display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ color: 'var(--text-secondary)' }}>Crews deployed in field</span>
+            <span style={{ color: 'var(--text-secondary)' }}>Work orders awaiting resolution</span>
             <span 
               onClick={() => onNavigateTab('incidents')} 
               style={{ color: 'var(--primary)', cursor: 'pointer', fontWeight: 600 }}
@@ -186,10 +187,10 @@ export default function DashboardView({ onSelectWard, onNavigateTab }) {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
               <span style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.05em' }}>
-                Resolution SLA
+                Average Resolution Time
               </span>
               <h2 style={{ fontSize: '2.1rem', fontWeight: 800, color: '#34d399', marginTop: 4, letterSpacing: '-0.03em' }}>
-                {summary?.avg_resolution_hours ? `${summary.avg_resolution_hours}h` : '48h'}
+                {summary?.avg_resolution_hours != null ? `${summary.avg_resolution_hours}h` : '—'}
               </h2>
             </div>
             <div style={{ padding: 10, borderRadius: 10, background: 'rgba(16, 185, 129, 0.12)', color: '#34d399' }}>
@@ -197,7 +198,7 @@ export default function DashboardView({ onSelectWard, onNavigateTab }) {
             </div>
           </div>
           <div style={{ marginTop: 12, fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-            City standard compliant (Target: ≤ 72h)
+            Measured across resolved complaint records
           </div>
         </div>
       </div>
@@ -217,7 +218,7 @@ export default function DashboardView({ onSelectWard, onNavigateTab }) {
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', color: '#38bdf8' }}>
               <TrendingUp size={14} />
-              <span>Telemetry Feed</span>
+              <span>Complaint Records</span>
             </div>
           </div>
 
@@ -308,7 +309,7 @@ export default function DashboardView({ onSelectWard, onNavigateTab }) {
         </div>
       </div>
 
-      {/* Row 2: Severity Triage + High Risk Ward Focus */}
+      {/* Row 2: Severity Triage + Observed Ward Workload */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'minmax(300px, 360px) 1fr',
@@ -358,8 +359,8 @@ export default function DashboardView({ onSelectWard, onNavigateTab }) {
         <div className="glass-card" style={{ padding: 24 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
             <div>
-              <h3 style={{ fontSize: '1.05rem', color: '#ffffff' }}>High-Risk Ward Prioritization</h3>
-              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Top municipal sectors requiring proactive mitigation</p>
+              <h3 style={{ fontSize: '1.05rem', color: '#ffffff' }}>Ward Complaint Priorities</h3>
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Last 30 days, sorted by critical reports and volume. Model risk will be added later.</p>
             </div>
             <button 
               onClick={() => onNavigateTab('map')} 
@@ -377,49 +378,22 @@ export default function DashboardView({ onSelectWard, onNavigateTab }) {
                 <tr>
                   <th>Ward Sector</th>
                   <th>Zone</th>
-                  <th>Complaints</th>
-                  <th>Risk Index</th>
-                  <th>Status</th>
+                  <th>Recent Reports</th>
+                  <th>Critical</th>
+                  <th>Active Alerts</th>
                   <th>Action</th>
                 </tr>
               </thead>
               <tbody>
-                {wardRisks.map((w) => {
-                  const isHigh = w.risk_score >= 70;
-                  const isMed = w.risk_score >= 40 && w.risk_score < 70;
+                {wardPriorities.map((w) => {
                   return (
                     <tr key={w.ward_id}>
                       <td style={{ fontWeight: 600, color: '#ffffff' }}>
                         {w.ward_name} <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>({w.ward_id})</span>
                       </td>
                       <td>{w.zone_name}</td>
-                      <td>{w.complaint_count}</td>
-                      <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <div style={{
-                            flex: 1,
-                            height: 5,
-                            background: 'rgba(255, 255, 255, 0.08)',
-                            borderRadius: 4,
-                            overflow: 'hidden',
-                            maxWidth: 70
-                          }}>
-                            <div style={{
-                              width: `${w.risk_score}%`,
-                              height: '100%',
-                              background: isHigh ? 'var(--rose)' : isMed ? 'var(--amber)' : 'var(--emerald)',
-                              borderRadius: 4
-                            }} />
-                          </div>
-                          <span style={{
-                            fontSize: '0.78rem',
-                            fontWeight: 700,
-                            color: isHigh ? '#f87171' : isMed ? '#fbbf24' : '#34d399'
-                          }}>
-                            {w.risk_score}
-                          </span>
-                        </div>
-                      </td>
+                      <td>{w.recent_complaints}</td>
+                      <td>{w.critical_complaints}</td>
                       <td>
                         {w.active_alerts > 0 ? (
                           <span className="badge badge-critical" style={{ fontSize: '0.68rem', padding: '2px 8px' }}>
@@ -427,7 +401,7 @@ export default function DashboardView({ onSelectWard, onNavigateTab }) {
                           </span>
                         ) : (
                           <span className="badge badge-low" style={{ fontSize: '0.68rem', padding: '2px 8px' }}>
-                            Optimal
+                            No active alerts
                           </span>
                         )}
                       </td>

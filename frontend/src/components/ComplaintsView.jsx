@@ -14,6 +14,8 @@ import { api } from '../api';
 
 export default function ComplaintsView() {
   const [complaints, setComplaints] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [wards, setWards] = useState([]);
@@ -38,15 +40,18 @@ export default function ComplaintsView() {
   const loadComplaints = async () => {
     try {
       setLoading(true);
-      const data = await api.getComplaints({
+      const data = await api.getComplaintsPage({
         skip: page * PAGE_SIZE,
         limit: PAGE_SIZE,
         ward_id: selectedWard || undefined,
         category: selectedCategory || undefined,
         status: selectedStatus || undefined,
         severity: selectedSeverity || undefined,
+        search: searchQuery.trim() || undefined,
       });
-      setComplaints(data);
+      setComplaints(data.complaints);
+      setTotal(data.total);
+      setTotalPages(data.total_pages);
     } catch (err) {
       console.error('Failed to load complaints:', err);
     } finally {
@@ -60,16 +65,7 @@ export default function ComplaintsView() {
 
   useEffect(() => {
     loadComplaints();
-  }, [page, selectedWard, selectedCategory, selectedStatus, selectedSeverity]);
-
-  // Client-side search query filtering
-  const filteredComplaints = searchQuery.trim()
-    ? complaints.filter(c => 
-        c.complaint_id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        c.locality?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        c.category?.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : complaints;
+  }, [page, selectedWard, selectedCategory, selectedStatus, selectedSeverity, searchQuery]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24, paddingBottom: 40 }}>
@@ -80,7 +76,7 @@ export default function ComplaintsView() {
             Nagpur Citizen Grievance Explorer
           </h1>
           <span className="badge badge-low" style={{ textTransform: 'none' }}>
-            10,000 Verified Records
+            Seeded Complaint Records
           </span>
         </div>
         <p style={{ fontSize: '0.875rem', marginTop: 4 }}>
@@ -98,7 +94,7 @@ export default function ComplaintsView() {
               type="text"
               placeholder="Search by ID or locality..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => { setSearchQuery(e.target.value); setPage(0); }}
               className="input"
               style={{ width: '100%', paddingLeft: 36 }}
             />
@@ -127,12 +123,11 @@ export default function ComplaintsView() {
             style={{ flex: '1 1 160px' }}
           >
             <option value="">All Categories</option>
-            <option value="Low Pressure">Low Pressure</option>
-            <option value="Water Contamination">Water Contamination</option>
-            <option value="Pipeline Leakage">Pipeline Leakage</option>
-            <option value="No Water Supply">No Water Supply</option>
-            <option value="Burst Pipe">Burst Pipe</option>
-            <option value="Meter Fault">Meter Fault</option>
+            <option value="low_pressure">Low Pressure</option>
+            <option value="dirty_water">Dirty Water</option>
+            <option value="leakage">Leakage</option>
+            <option value="water_shortage">Water Shortage</option>
+            <option value="bad_smell">Bad Smell</option>
           </select>
 
           {/* Status filter */}
@@ -171,7 +166,7 @@ export default function ComplaintsView() {
           <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-muted)' }}>
             Retrieving complaints dataset...
           </div>
-        ) : filteredComplaints.length === 0 ? (
+        ) : complaints.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-muted)' }}>
             No complaints match the selected filter criteria.
           </div>
@@ -190,7 +185,7 @@ export default function ComplaintsView() {
                 </tr>
               </thead>
               <tbody>
-                {filteredComplaints.map((c) => (
+                {complaints.map((c) => (
                   <tr key={c.complaint_id}>
                     <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--primary)', fontWeight: 600 }}>
                       {c.complaint_id}
@@ -235,7 +230,7 @@ export default function ComplaintsView() {
         {/* Pagination controls */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 }}>
           <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-            Showing page {page + 1} ({PAGE_SIZE} rows per view)
+            Showing page {page + 1} of {totalPages} ({total} matching records)
           </span>
 
           <div style={{ display: 'flex', gap: 8 }}>
@@ -249,7 +244,7 @@ export default function ComplaintsView() {
             </button>
             <button
               onClick={() => setPage(page + 1)}
-              disabled={complaints.length < PAGE_SIZE || loading}
+              disabled={page + 1 >= totalPages || loading}
               className="btn btn-secondary btn-sm"
             >
               <span>Next</span>

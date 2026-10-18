@@ -5,33 +5,65 @@ import AlertsView from './components/AlertsView';
 import IncidentsView from './components/IncidentsView';
 import MapView from './components/MapView';
 import ComplaintsView from './components/ComplaintsView';
-import PredictionsView from './components/PredictionsView';
 import NewIncidentModal from './components/NewIncidentModal';
 import { api } from './api';
-import { Droplet, ExternalLink, ShieldCheck } from 'lucide-react';
+import { Droplet, ExternalLink } from 'lucide-react';
 
 export default function App() {
+  const [authStatus, setAuthStatus] = useState('loading');
+  const [password, setPassword] = useState('');
+  const [authError, setAuthError] = useState('');
+  const [signingIn, setSigningIn] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [activeAlertCount, setActiveAlertCount] = useState(0);
   const [isIncidentModalOpen, setIsIncidentModalOpen] = useState(false);
   const [prefillIncidentData, setPrefillIncidentData] = useState(null);
   const [selectedMapWardId, setSelectedMapWardId] = useState(null);
+  const [incidentRevision, setIncidentRevision] = useState(0);
+
+  useEffect(() => {
+    api.getSession()
+      .then(() => setAuthStatus('authenticated'))
+      .catch((err) => {
+        setAuthError(err.message.includes('Sign in') ? '' : err.message);
+        setAuthStatus('signed-out');
+      });
+    const expireSession = () => setAuthStatus('signed-out');
+    window.addEventListener('jalwatch:unauthorized', expireSession);
+    return () => window.removeEventListener('jalwatch:unauthorized', expireSession);
+  }, []);
+
+  const handleLogin = async (event) => {
+    event.preventDefault();
+    setSigningIn(true);
+    setAuthError('');
+    try {
+      await api.login(password);
+      setPassword('');
+      setAuthStatus('authenticated');
+    } catch (err) {
+      setAuthError(err.message);
+    } finally {
+      setSigningIn(false);
+    }
+  };
 
   // Poll or load alert count for navbar badge
   const updateAlertCount = async () => {
     try {
-      const alerts = await api.getAlerts({ status: 'active', limit: 100 });
-      setActiveAlertCount(alerts.length);
+      const result = await api.getActiveAlertCount();
+      setActiveAlertCount(result.active_alerts);
     } catch (err) {
       console.error(err);
     }
   };
 
   useEffect(() => {
+    if (authStatus !== 'authenticated') return;
     updateAlertCount();
     const interval = setInterval(updateAlertCount, 30000); // 30s polling
     return () => clearInterval(interval);
-  }, []);
+  }, [authStatus]);
 
   const handleEscalateToIncident = (alertItem) => {
     setPrefillIncidentData(alertItem);
@@ -43,6 +75,28 @@ export default function App() {
     setActiveTab('map');
   };
 
+  if (authStatus !== 'authenticated') {
+    return (
+      <main style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', padding: 24 }}>
+        <div className="glass-card" style={{ width: '100%', maxWidth: 420, padding: 32 }}>
+          <h1 style={{ marginBottom: 8 }}>JalWatch</h1>
+          <p style={{ marginBottom: 24 }}>Administrator sign in</p>
+          {authStatus === 'loading' ? <p>Checking session…</p> : (
+            <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <label htmlFor="admin-password">Administrator password</label>
+              <input id="admin-password" className="input" type="password" autoComplete="current-password"
+                value={password} onChange={(event) => setPassword(event.target.value)} required />
+              {authError && <p role="alert" style={{ color: '#fca5a5' }}>{authError}</p>}
+              <button className="btn btn-primary" type="submit" disabled={signingIn}>
+                {signingIn ? 'Signing in…' : 'Sign in'}
+              </button>
+            </form>
+          )}
+        </div>
+      </main>
+    );
+  }
+
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       {/* Top Navbar */}
@@ -50,6 +104,10 @@ export default function App() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         activeAlertCount={activeAlertCount}
+        onLogout={async () => {
+          try { await api.logout(); } catch (err) { console.error(err); }
+          setAuthStatus('signed-out');
+        }}
         openNewIncidentModal={() => {
           setPrefillIncidentData(null);
           setIsIncidentModalOpen(true);
@@ -79,6 +137,7 @@ export default function App() {
 
         {activeTab === 'incidents' && (
           <IncidentsView
+            revision={incidentRevision}
             onOpenNewIncidentModal={() => {
               setPrefillIncidentData(null);
               setIsIncidentModalOpen(true);
@@ -87,9 +146,12 @@ export default function App() {
         )}
 
         {activeTab === 'map' && (
-          <MapView
-            selectedWardId={selectedMapWardId}
-          />
+          <>
+            <p style={{ marginBottom: 16 }}>
+              Map preview: ward centers and sampled complaint pins. Network layers and validated boundaries are pending Member 2’s data integration.
+            </p>
+            <MapView selectedWardId={selectedMapWardId} />
+          </>
         )}
 
         {activeTab === 'complaints' && (
@@ -97,7 +159,12 @@ export default function App() {
         )}
 
         {activeTab === 'predictions' && (
-          <PredictionsView />
+          <div className="glass-card" style={{ padding: 32 }}>
+            <h1>Risk model integration pending</h1>
+            <p style={{ marginTop: 12 }}>
+              Member 1 will provide validated incident risk predictions. The alert evaluator accepts those results through the documented model signal contract.
+            </p>
+          </div>
         )}
       </main>
 
@@ -111,9 +178,8 @@ export default function App() {
         prefillData={prefillIncidentData}
         onIncidentCreated={() => {
           updateAlertCount();
-          if (activeTab === 'incidents') {
-            // refresh happens inside IncidentsView
-          }
+          setIncidentRevision((current) => current + 1);
+          setActiveTab('incidents');
         }}
       />
 
@@ -145,10 +211,10 @@ export default function App() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <span className="live-pulse" style={{ width: 6, height: 6 }} />
-              <span style={{ color: '#34d399' }}>Core Telemetry Online</span>
+              <span style={{ color: '#34d399' }}>API Connected</span>
             </span>
             <span style={{ color: 'var(--border-subtle)' }}>|</span>
-            <span>Spatial Engine: OpenGIS WGS84</span>
+            <span>Map layers pending validation</span>
             <span style={{ color: 'var(--border-subtle)' }}>|</span>
             <a
               href="http://localhost:8000/docs"

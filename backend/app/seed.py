@@ -158,7 +158,6 @@ def _seed_mock_alerts(db):
         ("cluster_detected",  "Complaint cluster detected in {ward}", "Geographic clustering of complaints identified near locality in {ward}."),
     ]
     severities = ["low", "medium", "high", "critical"]
-    sources = ["ml_model", "threshold_rule", "system"]
     complaint_types = ["leakage", "water_shortage", "dirty_water", "low_pressure"]
 
     alerts = []
@@ -200,7 +199,7 @@ def _seed_mock_alerts(db):
                 triggered + timedelta(hours=random.randint(2, 24))
                 if status == "resolved" else None
             ),
-            source=random.choice(sources),
+            source="demo",
         )
         alerts.append(alert)
 

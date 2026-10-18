@@ -1,31 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { ShieldAlert, Send } from 'lucide-react';
 import { api } from '../api';
-
-const CREW_TEAMS = [
-  'NMC Quick Response Team 1 (Central)',
-  'Zone 9 AshiNagar Pipeline Crew',
-  'Zone 8 Lakadganj Emergency Leakage Squad',
-  'Dharampeth Water Quality Field Lab',
-  'Heavy Valve & Booster Maintenance Unit',
-];
+import { CREW_TEAMS, INCIDENT_TYPES } from '../incidentConstants';
 
 export default function NewIncidentModal({ isOpen, onClose, prefillData, onIncidentCreated }) {
   const [title, setTitle] = useState('');
   const [wardId, setWardId] = useState('');
   const [severity, setSeverity] = useState('high');
-  const [assignedTeam, setAssignedTeam] = useState(CREW_TEAMS[0]);
+  const [incidentType, setIncidentType] = useState('supply_failure');
+  const [assignedTeam, setAssignedTeam] = useState('');
+  const [latitude, setLatitude] = useState('');
+  const [longitude, setLongitude] = useState('');
   const [description, setDescription] = useState('');
   const [wards, setWards] = useState([]);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     const loadWards = async () => {
       try {
         const data = await api.getWards();
         setWards(data);
-        if (data.length > 0 && !wardId) {
-          setWardId(data[0].ward_id);
+        if (data.length > 0) {
+          setWardId(prefillData?.ward_id || data[0].ward_id);
         }
       } catch (err) {
         console.error(err);
@@ -41,7 +38,13 @@ export default function NewIncidentModal({ isOpen, onClose, prefillData, onIncid
       } else {
         setTitle('');
         setDescription('');
+        setSeverity('high');
       }
+      setIncidentType('supply_failure');
+      setAssignedTeam('');
+      setLatitude('');
+      setLongitude('');
+      setError('');
     }
   }, [isOpen, prefillData]);
 
@@ -49,7 +52,7 @@ export default function NewIncidentModal({ isOpen, onClose, prefillData, onIncid
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!title.trim() || !wardId) return;
+    if (!title.trim() || !wardId || latitude === '' || longitude === '') return;
 
     try {
       setSubmitting(true);
@@ -58,12 +61,16 @@ export default function NewIncidentModal({ isOpen, onClose, prefillData, onIncid
         description,
         ward_id: wardId,
         severity,
-        assigned_team: assignedTeam,
+        incident_type: incidentType,
+        latitude: Number(latitude),
+        longitude: Number(longitude),
+        assigned_to: assignedTeam || null,
+        related_alert_id: prefillData?.id || null,
       });
       if (onIncidentCreated) onIncidentCreated();
       onClose();
     } catch (err) {
-      alert('Failed to log incident ticket: ' + err.message);
+      setError(err.message);
     } finally {
       setSubmitting(false);
     }
@@ -132,31 +139,49 @@ export default function NewIncidentModal({ isOpen, onClose, prefillData, onIncid
                 className="select"
                 style={{ width: '100%' }}
               >
-                <option value="critical">Critical (Immediate SLA)</option>
-                <option value="high">High (&lt; 12h SLA)</option>
-                <option value="medium">Medium (&lt; 24h SLA)</option>
-                <option value="low">Low (&lt; 48h SLA)</option>
+                <option value="critical">Critical</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
               </select>
             </div>
+          </div>
+
+          <div>
+            <label htmlFor="incident-type" style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: 6 }}>Incident Type</label>
+            <select id="incident-type" className="select" value={incidentType} onChange={(e) => setIncidentType(e.target.value)} style={{ width: '100%' }}>
+              {INCIDENT_TYPES.map(({ value, label }) => <option key={value} value={value}>{label}</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: 6 }}>Location coordinates</label>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <input className="input" aria-label="Latitude" type="number" step="any" min="-90" max="90" required placeholder="Latitude" value={latitude} onChange={(e) => setLatitude(e.target.value)} />
+              <input className="input" aria-label="Longitude" type="number" step="any" min="-180" max="180" required placeholder="Longitude" value={longitude} onChange={(e) => setLongitude(e.target.value)} />
+            </div>
+            <p style={{ fontSize: '0.75rem', marginTop: 5 }}>Enter the reported location. Coordinates are required so incidents are not silently placed at the city center.</p>
           </div>
 
           <div>
             <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: 6 }}>
               Dispatch Maintenance Crew
             </label>
-            <select
+            <input
               value={assignedTeam}
               onChange={(e) => setAssignedTeam(e.target.value)}
-              className="select"
+              className="input"
+              list="new-incident-crew-suggestions"
+              maxLength={120}
+              placeholder="Optional: enter the assigned crew"
               style={{ width: '100%' }}
-            >
-              {CREW_TEAMS.map((team, idx) => (
-                <option key={idx} value={team}>
-                  {team}
-                </option>
-              ))}
-            </select>
+            />
+            <datalist id="new-incident-crew-suggestions">
+              {CREW_TEAMS.map((team) => <option key={team} value={team} />)}
+            </datalist>
           </div>
+
+          {error && <p role="alert" style={{ color: '#fca5a5' }}>{error}</p>}
 
           <div>
             <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: 6 }}>
@@ -178,7 +203,7 @@ export default function NewIncidentModal({ isOpen, onClose, prefillData, onIncid
             </button>
             <button type="submit" disabled={submitting} className="btn btn-primary">
               <Send size={14} />
-              <span>{submitting ? 'Dispatching...' : 'Dispatch & Log Incident'}</span>
+              <span>{submitting ? 'Saving...' : assignedTeam ? 'Create & Assign Incident' : 'Create Incident'}</span>
             </button>
           </div>
         </form>

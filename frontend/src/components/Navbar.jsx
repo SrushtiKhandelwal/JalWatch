@@ -10,14 +10,14 @@ import {
   Plus
 } from 'lucide-react';
 
-export default function Navbar({ activeTab, setActiveTab, activeAlertCount, openNewIncidentModal }) {
+export default function Navbar({ activeTab, setActiveTab, activeAlertCount, openNewIncidentModal, onLogout }) {
   const navItems = [
     { id: 'dashboard', label: 'Overview', icon: BarChart3 },
     { id: 'alerts', label: 'Early Warning', icon: AlertTriangle, badge: activeAlertCount },
     { id: 'incidents', label: 'Operations', icon: ShieldAlert },
-    { id: 'map', label: 'Spatial GIS', icon: MapPin },
+    { id: 'map', label: 'Map Preview', icon: MapPin },
     { id: 'complaints', label: 'Grievances', icon: FileText },
-    { id: 'predictions', label: 'Predictive Risk', icon: BrainCircuit },
+    { id: 'predictions', label: 'Model Pending', icon: BrainCircuit },
   ];
 
   return (
@@ -146,7 +146,7 @@ export default function Navbar({ activeTab, setActiveTab, activeAlertCount, open
             fontWeight: 600
           }}>
             <div className="live-pulse" style={{ width: 6, height: 6 }} />
-            <span>Telemetry Online</span>
+            <span>API Connected</span>
           </div>
 
           <button
@@ -157,6 +157,7 @@ export default function Navbar({ activeTab, setActiveTab, activeAlertCount, open
             <Plus size={15} />
             <span>Log Incident</span>
           </button>
+          <button onClick={onLogout} className="btn btn-secondary btn-sm">Sign out</button>
         </div>
       </div>
     </header>

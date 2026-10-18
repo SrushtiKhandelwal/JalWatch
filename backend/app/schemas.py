@@ -6,8 +6,8 @@ These are application data contracts:
   - Response schemas -> payload returned by API
 """
 
-from pydantic import BaseModel, ConfigDict
-from typing import Optional, List
+from pydantic import BaseModel, ConfigDict, Field
+from typing import Optional, List, Literal
 from datetime import datetime
 
 
@@ -49,7 +49,6 @@ class ComplaintResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     complaint_id: str
-    citizen_id: Optional[str] = None
     reported_at: datetime
     complaint_type: str
     description: Optional[str] = None
@@ -79,14 +78,15 @@ class ComplaintListResponse(BaseModel):
 
 class AlertCreate(BaseModel):
     """Payload to create a new alert."""
-    alert_type: str           # high_risk | anomaly | threshold_breach | cluster_detected
-    severity: str             # low | medium | high | critical
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+
+    alert_type: Literal["high_risk", "anomaly", "threshold_breach", "cluster_detected", "early_warning"]
+    severity: Literal["low", "medium", "high", "critical"]
     ward_id: str
     locality_id: Optional[str] = None
-    title: str
-    description: str
-    risk_score: float = 0.0
-    source: str = "system"
+    title: str = Field(min_length=1, max_length=200)
+    description: str = Field(default="", max_length=5000)
+    risk_score: float = Field(default=0.0, ge=0, le=1)
 
 
 class AlertResponse(BaseModel):
@@ -107,9 +107,38 @@ class AlertResponse(BaseModel):
     source: str
 
 
+class AlertEventResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    alert_id: int
+    from_status: Optional[str] = None
+    to_status: str
+    occurred_at: datetime
+
+
 class AlertUpdate(BaseModel):
     """Payload to update alert status."""
-    status: str   # acknowledged | resolved | dismissed
+    model_config = ConfigDict(extra="forbid")
+    status: Literal["acknowledged", "resolved", "dismissed"]
+
+
+class RiskSignal(BaseModel):
+    """Contract for Member 1's model output consumed by the alert evaluator."""
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+
+    ward_id: str
+    risk_score: float = Field(ge=0, le=1)
+    severity_prediction: Literal["low", "medium", "high", "critical"]
+    model_version: str = Field(min_length=1, max_length=100)
+    contributing_factors: List[str] = Field(default_factory=list, max_length=20)
+    generated_at: datetime
+
+
+class AlertEvaluationResponse(BaseModel):
+    alert_created: bool
+    reason: str
+    alert: Optional[AlertResponse] = None
 
 
 # ╔═══════════════════════════════════════════════════════════╗
@@ -118,16 +147,19 @@ class AlertUpdate(BaseModel):
 
 class IncidentCreate(BaseModel):
     """Payload to create a new incident."""
-    title: str
-    description: str
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+
+    title: str = Field(min_length=1, max_length=200)
+    description: str = Field(default="", max_length=5000)
     ward_id: str
     locality_id: Optional[str] = None
-    latitude: float
-    longitude: float
-    incident_type: str        # pipe_burst | contamination | supply_failure | pressure_drop | flooding
-    severity: str
-    related_complaint_ids: List[str] = []
-    related_alert_id: Optional[int] = None
+    latitude: float = Field(ge=-90, le=90)
+    longitude: float = Field(ge=-180, le=180)
+    incident_type: Literal["pipe_burst", "contamination", "supply_failure", "pressure_drop", "flooding"]
+    severity: Literal["low", "medium", "high", "critical"]
+    assigned_to: Optional[str] = Field(default=None, min_length=1, max_length=120)
+    related_complaint_ids: List[str] = Field(default_factory=list, max_length=100)
+    related_alert_id: Optional[int] = Field(default=None, gt=0)
 
 
 class IncidentResponse(BaseModel):
@@ -150,15 +182,29 @@ class IncidentResponse(BaseModel):
     resolved_at: Optional[datetime] = None
     closed_at: Optional[datetime] = None
     resolution_notes: Optional[str] = None
-    related_complaint_ids: List[str] = []
+    related_complaint_ids: List[str] = Field(default_factory=list)
     related_alert_id: Optional[int] = None
+
+
+class IncidentEventResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    incident_id: str
+    from_status: Optional[str] = None
+    to_status: str
+    assigned_to: Optional[str] = None
+    note: Optional[str] = None
+    occurred_at: datetime
 
 
 class IncidentStatusUpdate(BaseModel):
     """Payload to change incident status and optionally assign/resolve."""
-    status: str               # reported | open | assigned | in_progress | resolved | closed
-    assigned_to: Optional[str] = None
-    resolution_notes: Optional[str] = None
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+
+    status: Literal["open", "assigned", "in_progress", "resolved", "closed"]
+    assigned_to: Optional[str] = Field(default=None, min_length=1, max_length=120)
+    resolution_notes: Optional[str] = Field(default=None, min_length=3, max_length=5000)
 
 
 # ╔═══════════════════════════════════════════════════════════╗
@@ -176,9 +222,10 @@ class DashboardSummary(BaseModel):
     critical_alerts: int
     total_incidents: int
     open_incidents: int
-    avg_resolution_hours: float
+    avg_resolution_hours: Optional[float] = None
     complaints_today: int
-    high_risk_wards: int
+    wards_with_critical_alerts: int
+    latest_complaint_at: Optional[datetime] = None
 
 
 class ComplaintsByType(BaseModel):
@@ -196,14 +243,15 @@ class ComplaintTrend(BaseModel):
     count: int
 
 
-class WardRiskSummary(BaseModel):
-    """Ward-level risk overview for the dashboard map / table."""
+class WardPrioritySummary(BaseModel):
+    """Observed ward workload; no model risk score is implied."""
     ward_id: str
     ward_name: str
-    risk_score: float
-    risk_level: str           # low | medium | high | critical
-    total_complaints: int
+    zone_name: str
+    recent_complaints: int
+    critical_complaints: int
     active_alerts: int
+    window_days: int
 
 
 # [ PREDICTION SCHEMAS: Machine Learning Inference ]

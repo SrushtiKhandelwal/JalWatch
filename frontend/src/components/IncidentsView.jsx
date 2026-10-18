@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  ShieldAlert, 
   Clock, 
   MapPin, 
   Users, 
@@ -12,31 +11,49 @@ import {
   Table as TableIcon
 } from 'lucide-react';
 import { api } from '../api';
+import { CREW_TEAMS, INCIDENT_STAGES } from '../incidentConstants';
 
-const PIPELINE_STAGES = [
-  { id: 'reported', label: 'Reported', color: '#94a3b8' },
-  { id: 'investigating', label: 'Investigating', color: '#38bdf8' },
-  { id: 'dispatched', label: 'Crew Dispatched', color: '#f59e0b' },
-  { id: 'in_progress', label: 'In Progress', color: '#a855f7' },
-  { id: 'resolved', label: 'Resolved', color: '#10b981' },
-];
-
-export default function IncidentsView({ onOpenNewIncidentModal }) {
+export default function IncidentsView({ onOpenNewIncidentModal, revision }) {
   const [incidents, setIncidents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState('kanban'); // 'kanban' or 'table'
   const [filterSeverity, setFilterSeverity] = useState('');
+  const [page, setPage] = useState(1);
+  const [error, setError] = useState('');
+  const [pendingTransition, setPendingTransition] = useState(null);
+  const [assignedTo, setAssignedTo] = useState('');
+  const [resolutionNotes, setResolutionNotes] = useState('');
+  const [savingTransition, setSavingTransition] = useState(false);
+  const [historyIncident, setHistoryIncident] = useState(null);
+  const [historyEvents, setHistoryEvents] = useState([]);
+  const [historyError, setHistoryError] = useState('');
+  const [historyLoading, setHistoryLoading] = useState(false);
+
+  const openHistory = async (incident) => {
+    setHistoryIncident(incident);
+    setHistoryLoading(true);
+    setHistoryError('');
+    try {
+      setHistoryEvents(await api.getIncidentEvents(incident.incident_id));
+    } catch (err) {
+      setHistoryError(err.message);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
 
   const loadIncidents = async () => {
     try {
       setLoading(true);
       const data = await api.getIncidents({
         severity: filterSeverity || undefined,
-        limit: 50
+        page,
+        page_size: 50
       });
       setIncidents(data);
+      setError('');
     } catch (err) {
-      console.error('Failed to load incidents:', err);
+      setError(err.message);
     } finally {
       setLoading(false);
     }
@@ -44,19 +61,34 @@ export default function IncidentsView({ onOpenNewIncidentModal }) {
 
   useEffect(() => {
     loadIncidents();
-  }, [filterSeverity]);
+  }, [filterSeverity, page, revision]);
 
-  const handleAdvanceStatus = async (incident) => {
-    const currentIndex = PIPELINE_STAGES.findIndex(s => s.id === incident.status);
-    if (currentIndex < PIPELINE_STAGES.length - 1) {
-      const nextStatus = PIPELINE_STAGES[currentIndex + 1].id;
-      try {
-        await api.updateIncidentStatus(incident.incident_id || incident.id, nextStatus, `Advanced to ${nextStatus} via Command Center`);
-        loadIncidents();
-      } catch (err) {
-        alert('Failed to update status: ' + err.message);
-      }
+  const applyTransition = async (incident, nextStatus, notes = '', crew = '') => {
+    try {
+      setSavingTransition(true);
+      setError('');
+      await api.updateIncidentStatus(incident.incident_id, nextStatus, notes, crew);
+      setPendingTransition(null);
+      await loadIncidents();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSavingTransition(false);
     }
+  };
+
+  const handleAdvanceStatus = (incident) => {
+    const currentIndex = INCIDENT_STAGES.findIndex((stage) => stage.id === incident.status);
+    if (currentIndex < 0 || currentIndex >= INCIDENT_STAGES.length - 1) return;
+    const nextStatus = INCIDENT_STAGES[currentIndex + 1].id;
+    if (nextStatus === 'assigned' || nextStatus === 'resolved') {
+      setAssignedTo(incident.assigned_to || '');
+      setResolutionNotes('');
+      setError('');
+      setPendingTransition({ incident, nextStatus });
+      return;
+    }
+    applyTransition(incident, nextStatus);
   };
 
   return (
@@ -73,7 +105,7 @@ export default function IncidentsView({ onOpenNewIncidentModal }) {
             </span>
           </div>
           <p style={{ fontSize: '0.875rem', marginTop: 4 }}>
-            End-to-end incident lifecycle tracking, maintenance crew deployment, and SLA enforcement.
+            Track incident stages, crew assignments, and resolution notes. Seeded tickets are demonstrations.
           </p>
         </div>
 
@@ -139,7 +171,7 @@ export default function IncidentsView({ onOpenNewIncidentModal }) {
         </div>
         <select
           value={filterSeverity}
-          onChange={(e) => setFilterSeverity(e.target.value)}
+          onChange={(e) => { setFilterSeverity(e.target.value); setPage(1); }}
           className="select"
         >
           <option value="">All Priorities</option>
@@ -150,11 +182,12 @@ export default function IncidentsView({ onOpenNewIncidentModal }) {
         </select>
 
         <div style={{ marginLeft: 'auto', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-          Active Tickets: <strong>{incidents.filter(i => i.status !== 'resolved').length}</strong> / Total: {incidents.length}
+          Page {page} · Active on page: <strong>{incidents.filter(i => !['resolved', 'closed'].includes(i.status)).length}</strong> / Shown: {incidents.length}
         </div>
       </div>
 
       {/* Content Rendering: Kanban or Table */}
+      {error && !pendingTransition && <p role="alert" style={{ color: '#fca5a5' }}>{error}</p>}
       {loading ? (
         <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-muted)' }}>
           Loading incident pipeline...
@@ -167,7 +200,7 @@ export default function IncidentsView({ onOpenNewIncidentModal }) {
           gap: 16,
           alignItems: 'flex-start',
         }}>
-          {PIPELINE_STAGES.map((stage) => {
+          {INCIDENT_STAGES.map((stage) => {
             const stageIncidents = incidents.filter(i => i.status === stage.id);
             return (
               <div 
@@ -206,7 +239,7 @@ export default function IncidentsView({ onOpenNewIncidentModal }) {
                 {/* Cards in this stage */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {stageIncidents.map((incident) => {
-                    const isNextAvailable = stage.id !== 'resolved';
+                    const isNextAvailable = stage.id !== 'closed';
                     return (
                       <div
                         key={incident.id}
@@ -239,11 +272,11 @@ export default function IncidentsView({ onOpenNewIncidentModal }) {
                           </span>
                           <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                             <Users size={12} />
-                            {incident.assigned_to || incident.assigned_team || 'Zone Crew Pending'}
+                            {incident.assigned_to || 'Crew pending'}
                           </span>
                           <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                             <Clock size={12} />
-                            {new Date(incident.reported_at || incident.created_at || Date.now()).toLocaleDateString()}
+                            {incident.reported_at ? new Date(incident.reported_at).toLocaleDateString() : 'Date unavailable'}
                           </span>
                         </div>
 
@@ -263,6 +296,7 @@ export default function IncidentsView({ onOpenNewIncidentModal }) {
                             <ArrowRight size={12} />
                           </button>
                         )}
+                        <button onClick={() => openHistory(incident)} className="btn btn-secondary btn-sm">View History</button>
                       </div>
                     );
                   })}
@@ -292,7 +326,7 @@ export default function IncidentsView({ onOpenNewIncidentModal }) {
                 {incidents.map((incident) => (
                   <tr key={incident.id}>
                     <td style={{ fontWeight: 700, color: 'var(--primary)' }}>
-                      INC-{String(incident.id).padStart(4, '0')}
+                      {incident.incident_id}
                     </td>
                     <td style={{ fontWeight: 600, color: '#ffffff' }}>{incident.title}</td>
                     <td>{incident.ward ? incident.ward.ward_name : `Ward ${incident.ward_id}`}</td>
@@ -304,10 +338,10 @@ export default function IncidentsView({ onOpenNewIncidentModal }) {
                     <td>
                       <span className="badge badge-low">{incident.status}</span>
                     </td>
-                    <td>{incident.assigned_team || 'Pending Crew'}</td>
-                    <td>{new Date(incident.created_at).toLocaleDateString()}</td>
-                    <td>
-                      {incident.status !== 'resolved' ? (
+                    <td>{incident.assigned_to || 'Pending Crew'}</td>
+                    <td>{new Date(incident.reported_at).toLocaleDateString()}</td>
+                    <td style={{ display: 'flex', gap: 8 }}>
+                      {incident.status !== 'closed' ? (
                         <button
                           onClick={() => handleAdvanceStatus(incident)}
                           className="btn btn-secondary btn-sm"
@@ -319,11 +353,87 @@ export default function IncidentsView({ onOpenNewIncidentModal }) {
                           <CheckCircle2 size={14} /> Closed
                         </span>
                       )}
+                      <button onClick={() => openHistory(incident)} className="btn btn-secondary btn-sm">History</button>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 12 }}>
+        <button className="btn btn-secondary btn-sm" disabled={loading || page === 1} onClick={() => setPage((value) => value - 1)}>Previous</button>
+        <span>Page {page}</span>
+        <button className="btn btn-secondary btn-sm" disabled={loading || incidents.length < 50} onClick={() => setPage((value) => value + 1)}>Next</button>
+      </div>
+
+      {pendingTransition && (
+        <div className="modal-backdrop" onClick={() => !savingTransition && setPendingTransition(null)}>
+          <div className="modal-content" onClick={(event) => event.stopPropagation()}>
+            <h3 style={{ marginBottom: 8 }}>
+              {pendingTransition.nextStatus === 'assigned' ? 'Assign response crew' : 'Resolve incident'}
+            </h3>
+            <p style={{ marginBottom: 20 }}>{pendingTransition.incident.incident_id}: {pendingTransition.incident.title}</p>
+            <form onSubmit={(event) => {
+              event.preventDefault();
+              applyTransition(
+                pendingTransition.incident,
+                pendingTransition.nextStatus,
+                resolutionNotes,
+                assignedTo,
+              );
+            }} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {pendingTransition.nextStatus === 'assigned' ? (
+                <>
+                  <label htmlFor="transition-crew">Response crew</label>
+                  <input id="transition-crew" className="input" list="incident-crew-suggestions" required maxLength={120}
+                    value={assignedTo} onChange={(event) => setAssignedTo(event.target.value)} placeholder="Enter the assigned crew" />
+                  <datalist id="incident-crew-suggestions">
+                    {CREW_TEAMS.map((team) => <option key={team} value={team} />)}
+                  </datalist>
+                </>
+              ) : (
+                <>
+                  <label htmlFor="resolution-notes">Resolution notes</label>
+                  <textarea id="resolution-notes" className="input" required minLength={3} maxLength={5000} rows={4}
+                    value={resolutionNotes} onChange={(event) => setResolutionNotes(event.target.value)}
+                    placeholder="Describe the work completed and service restored" />
+                </>
+              )}
+              {error && <p role="alert" style={{ color: '#fca5a5' }}>{error}</p>}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+                <button type="button" className="btn btn-secondary" disabled={savingTransition} onClick={() => setPendingTransition(null)}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={savingTransition}>
+                  {savingTransition ? 'Saving…' : 'Confirm'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {historyIncident && (
+        <div className="modal-backdrop" onClick={() => setHistoryIncident(null)}>
+          <div className="modal-content" onClick={(event) => event.stopPropagation()}>
+            <h3 style={{ marginBottom: 8 }}>Incident History</h3>
+            <p style={{ marginBottom: 16 }}>{historyIncident.incident_id}: {historyIncident.title}</p>
+            {historyLoading ? <p>Loading history…</p> : historyError ? (
+              <p role="alert" style={{ color: '#fca5a5' }}>{historyError}</p>
+            ) : (
+              <ol style={{ paddingLeft: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {historyEvents.map((event) => (
+                  <li key={event.id}>
+                    <strong>{event.to_status.replace(/_/g, ' ')}</strong>
+                    {' · '}{new Date(event.occurred_at).toLocaleString()}
+                    {event.assigned_to && <div>Crew: {event.assigned_to}</div>}
+                    {event.note && <div>{event.note}</div>}
+                  </li>
+                ))}
+              </ol>
+            )}
+            <button className="btn btn-secondary" style={{ marginTop: 24 }} onClick={() => setHistoryIncident(null)}>Close</button>
           </div>
         </div>
       )}

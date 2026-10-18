@@ -9,7 +9,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
 class Settings:
-    """Application configuration. Uses environment variables with sensible defaults."""
+    """Application configuration. Credentials must be supplied by the operator."""
 
     APP_NAME: str = "JalWatch API"
     VERSION: str = "1.0.0"
@@ -25,8 +25,12 @@ class Settings:
     # Path to raw CSV data files
     RAW_DATA_DIR: Path = PROJECT_ROOT / "data" / "raw"
 
+    ADMIN_PASSWORD: str = os.getenv("JALWATCH_ADMIN_PASSWORD", "")
+    SESSION_SECRET: str = os.getenv("JALWATCH_SESSION_SECRET", "")
+    COOKIE_SECURE: bool = os.getenv("JALWATCH_COOKIE_SECURE", "false").lower() == "true"
+
     # CORS: origins allowed to call this API (frontend dev server)
-    CORS_ORIGINS: list = [
+    DEFAULT_CORS_ORIGINS: list = [
         "http://localhost:3000",
         "http://localhost:3001",
         "http://localhost:5173",
@@ -35,6 +39,9 @@ class Settings:
         "http://localhost:8000",
         "http://127.0.0.1:8000",
     ]
+    CORS_ORIGINS: list = [
+        origin.strip() for origin in os.getenv("JALWATCH_CORS_ORIGINS", "").split(",") if origin.strip()
+    ] or DEFAULT_CORS_ORIGINS
 
 
 settings = Settings()

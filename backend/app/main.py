@@ -1,5 +1,5 @@
 """
-JalWatch API: Enterprise Water Utility Operations Platform.
+JalWatch operations API.
 
 Run with:
     cd JalWatch
@@ -8,10 +8,13 @@ Run with:
 Then open http://localhost:8000/docs for the interactive API documentation.
 """
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 
 from .config import settings
+from .auth import access_configured, require_session, router as auth_router
 from .database import engine, Base
 from .routers import complaints, wards, alerts, incidents, dashboard, predictions
 
@@ -24,13 +27,8 @@ app = FastAPI(
     title=settings.APP_NAME,
     version=settings.VERSION,
     description=(
-        "JalWatch: Intelligent Water Monitoring & Grievance Redressal System "
-        "for Nagpur Municipal Corporation.\n\n"
-        "Features:\n"
-        "- SCADA & Telemetry Alert Feed\n"
-        "- Incident Redressal & Field Crew Dispatch\n"
-        "- Executive Dashboard & Spatial Analytics\n"
-        "- Machine Learning Infrastructure Risk Prediction"
+        "JalWatch operations API for complaints, alerts, incident work orders, "
+        "and measured dashboard analytics. Model and GIS integration are separate team deliverables."
     ),
 )
 
@@ -46,12 +44,16 @@ app.add_middleware(
 
 # -- Register all routers --------------------------------
 
-app.include_router(dashboard.router, prefix=settings.API_PREFIX)
-app.include_router(complaints.router, prefix=settings.API_PREFIX)
-app.include_router(wards.router, prefix=settings.API_PREFIX)
-app.include_router(alerts.router, prefix=settings.API_PREFIX)
-app.include_router(incidents.router, prefix=settings.API_PREFIX)
-app.include_router(predictions.router, prefix=settings.API_PREFIX)
+app.include_router(auth_router, prefix=settings.API_PREFIX)
+for protected_router in (
+    dashboard.router, complaints.router, wards.router,
+    alerts.router, incidents.router, predictions.router,
+):
+    app.include_router(
+        protected_router,
+        prefix=settings.API_PREFIX,
+        dependencies=[Depends(require_session)],
+    )
 
 
 # -- Root & health endpoints ------------------------------
@@ -77,5 +79,12 @@ def root():
 
 @app.get("/health", tags=["Health"])
 def health_check():
-    """Health check endpoint for monitoring."""
+    """Readiness check for credentials and database connectivity."""
+    if not access_configured():
+        raise HTTPException(status_code=503, detail="Administrator credentials are not configured")
+    try:
+        with engine.connect() as connection:
+            connection.execute(text("SELECT 1"))
+    except SQLAlchemyError:
+        raise HTTPException(status_code=503, detail="Database unavailable") from None
     return {"status": "healthy"}

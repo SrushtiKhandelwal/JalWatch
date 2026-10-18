@@ -4,7 +4,7 @@ Complaints API: Browse, filter, and audit citizen grievance records.
 
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import or_
 from typing import Optional
 
 from ..database import get_db
@@ -21,6 +21,7 @@ def get_complaints(
     status: Optional[str] = None,
     severity: Optional[str] = None,
     complaint_type: Optional[str] = None,
+    search: Optional[str] = Query(None, max_length=100),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
@@ -45,6 +46,14 @@ def get_complaints(
         query = query.filter(Complaint.severity == severity)
     if complaint_type:
         query = query.filter(Complaint.complaint_type == complaint_type)
+    if search and search.strip():
+        term = search.strip().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        pattern = f"%{term}%"
+        query = query.filter(or_(
+            Complaint.complaint_id.ilike(pattern, escape="\\"),
+            Complaint.locality_id.ilike(pattern, escape="\\"),
+            Complaint.complaint_type.ilike(pattern, escape="\\"),
+        ))
 
     total = query.count()
     complaints = (

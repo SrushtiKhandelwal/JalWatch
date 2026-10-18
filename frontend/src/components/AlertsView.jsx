@@ -17,8 +17,24 @@ export default function AlertsView({ onEscalateToIncident }) {
   const [loading, setLoading] = useState(true);
   const [filterSeverity, setFilterSeverity] = useState('');
   const [filterStatus, setFilterStatus] = useState('active');
+  const [page, setPage] = useState(1);
   const [isCreatingAlert, setIsCreatingAlert] = useState(false);
   const [wards, setWards] = useState([]);
+  const [error, setError] = useState('');
+  const [historyAlert, setHistoryAlert] = useState(null);
+  const [historyEvents, setHistoryEvents] = useState([]);
+  const [historyError, setHistoryError] = useState('');
+
+  const openHistory = async (alertItem) => {
+    setHistoryAlert(alertItem);
+    setHistoryEvents([]);
+    setHistoryError('');
+    try {
+      setHistoryEvents(await api.getAlertEvents(alertItem.id));
+    } catch (err) {
+      setHistoryError(err.message);
+    }
+  };
 
   // New Alert form state
   const [newTitle, setNewTitle] = useState('');
@@ -32,11 +48,13 @@ export default function AlertsView({ onEscalateToIncident }) {
       const data = await api.getAlerts({
         severity: filterSeverity || undefined,
         status: filterStatus || undefined,
-        limit: 50
+        page,
+        page_size: 50
       });
       setAlerts(data);
+      setError('');
     } catch (err) {
-      console.error('Failed to load alerts:', err);
+      setError(err.message);
     } finally {
       setLoading(false);
     }
@@ -55,23 +73,32 @@ export default function AlertsView({ onEscalateToIncident }) {
   useEffect(() => {
     loadAlerts();
     loadWards();
-  }, [filterSeverity, filterStatus]);
+  }, [filterSeverity, filterStatus, page]);
 
   const handleAcknowledge = async (id) => {
     try {
       await api.acknowledgeAlert(id);
-      loadAlerts();
+      await loadAlerts();
     } catch (err) {
-      alert('Failed to acknowledge alert: ' + err.message);
+      setError(err.message);
     }
   };
 
   const handleResolve = async (id) => {
     try {
       await api.resolveAlert(id);
-      loadAlerts();
+      await loadAlerts();
     } catch (err) {
-      alert('Failed to resolve alert: ' + err.message);
+      setError(err.message);
+    }
+  };
+
+  const handleDismiss = async (id) => {
+    try {
+      await api.dismissAlert(id);
+      await loadAlerts();
+    } catch (err) {
+      setError(err.message);
     }
   };
 
@@ -90,9 +117,9 @@ export default function AlertsView({ onEscalateToIncident }) {
       setIsCreatingAlert(false);
       setNewTitle('');
       setNewDesc('');
-      loadAlerts();
+      await loadAlerts();
     } catch (err) {
-      alert('Failed to broadcast alert: ' + err.message);
+      setError(err.message);
     }
   };
 
@@ -103,14 +130,14 @@ export default function AlertsView({ onEscalateToIncident }) {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <h1 style={{ fontSize: '1.65rem', fontWeight: 800, color: '#ffffff', letterSpacing: '-0.02em' }}>
-              Early Warning & Anomaly Alert System
+              Early Warning & Alert Operations
             </h1>
             <span className="badge badge-critical" style={{ textTransform: 'none', fontSize: '0.75rem' }}>
-              Live Telemetry
+              Response Workflow
             </span>
           </div>
           <p style={{ fontSize: '0.875rem', marginTop: 4 }}>
-            Automated cluster detection, telemetry threshold breaches, and zone notifications for Nagpur.
+            Review, acknowledge, resolve, and escalate ward alerts. Seeded examples are demonstrations; model alerts appear after integration.
           </p>
         </div>
 
@@ -119,7 +146,7 @@ export default function AlertsView({ onEscalateToIncident }) {
           className="btn btn-danger"
         >
           <Radio size={16} />
-          <span>Broadcast Warning Alert</span>
+          <span>Create Alert</span>
         </button>
       </div>
 
@@ -134,13 +161,14 @@ export default function AlertsView({ onEscalateToIncident }) {
           <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Status:</label>
           <select 
             value={filterStatus} 
-            onChange={(e) => setFilterStatus(e.target.value)}
+            onChange={(e) => { setFilterStatus(e.target.value); setPage(1); }}
             className="select"
           >
             <option value="">All Statuses</option>
             <option value="active">Active (Pending)</option>
             <option value="acknowledged">Acknowledged</option>
             <option value="resolved">Resolved</option>
+            <option value="dismissed">Dismissed</option>
           </select>
         </div>
 
@@ -148,7 +176,7 @@ export default function AlertsView({ onEscalateToIncident }) {
           <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Severity:</label>
           <select 
             value={filterSeverity} 
-            onChange={(e) => setFilterSeverity(e.target.value)}
+            onChange={(e) => { setFilterSeverity(e.target.value); setPage(1); }}
             className="select"
           >
             <option value="">All Severities</option>
@@ -160,9 +188,11 @@ export default function AlertsView({ onEscalateToIncident }) {
         </div>
 
         <div style={{ marginLeft: 'auto', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-          Showing <strong>{alerts.length}</strong> alerts
+          Page {page} · Showing <strong>{alerts.length}</strong> alerts
         </div>
       </div>
+
+      {error && !isCreatingAlert && <p role="alert" style={{ color: '#fca5a5' }}>{error}</p>}
 
       {/* Alerts Stream List */}
       {loading ? (
@@ -173,7 +203,7 @@ export default function AlertsView({ onEscalateToIncident }) {
         <div className="glass-card" style={{ textAlign: 'center', padding: '60px 20px' }}>
           <CheckCircle size={44} color="#10b981" style={{ margin: '0 auto 12px' }} />
           <h3 style={{ color: '#ffffff' }}>No matching alerts found</h3>
-          <p style={{ marginTop: 6 }}>All monitored thresholds in this category are operating within acceptable parameters.</p>
+          <p style={{ marginTop: 6 }}>No records match the selected filters.</p>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -181,6 +211,7 @@ export default function AlertsView({ onEscalateToIncident }) {
             const isCrit = alertItem.severity === 'critical';
             const isHigh = alertItem.severity === 'high';
             const isResolved = alertItem.status === 'resolved';
+            const isClosed = isResolved || alertItem.status === 'dismissed';
 
             return (
               <div 
@@ -236,7 +267,7 @@ export default function AlertsView({ onEscalateToIncident }) {
                       </span>
                       <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                         <Clock size={12} />
-                        {new Date(alertItem.triggered_at || alertItem.created_at || Date.now()).toLocaleString()}
+                        {alertItem.triggered_at ? new Date(alertItem.triggered_at).toLocaleString() : 'Time unavailable'}
                       </span>
                     </div>
                   </div>
@@ -244,6 +275,7 @@ export default function AlertsView({ onEscalateToIncident }) {
 
                 {/* Actions */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <button onClick={() => openHistory(alertItem)} className="btn btn-secondary btn-sm">History</button>
                   {alertItem.status === 'active' && (
                     <button
                       onClick={() => handleAcknowledge(alertItem.id)}
@@ -253,7 +285,7 @@ export default function AlertsView({ onEscalateToIncident }) {
                     </button>
                   )}
 
-                  {!isResolved && (
+                  {!isClosed && (
                     <button
                       onClick={() => handleResolve(alertItem.id)}
                       className="btn btn-success btn-sm"
@@ -262,7 +294,11 @@ export default function AlertsView({ onEscalateToIncident }) {
                     </button>
                   )}
 
-                  {!isResolved && onEscalateToIncident && (
+                  {!isClosed && (
+                    <button onClick={() => handleDismiss(alertItem.id)} className="btn btn-secondary btn-sm">Dismiss</button>
+                  )}
+
+                  {!isClosed && onEscalateToIncident && (
                     <button
                       onClick={() => onEscalateToIncident(alertItem)}
                       className="btn btn-primary btn-sm"
@@ -278,14 +314,20 @@ export default function AlertsView({ onEscalateToIncident }) {
         </div>
       )}
 
-      {/* Modal: Broadcast Alert */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 12 }}>
+        <button className="btn btn-secondary btn-sm" disabled={loading || page === 1} onClick={() => setPage((value) => value - 1)}>Previous</button>
+        <span>Page {page}</span>
+        <button className="btn btn-secondary btn-sm" disabled={loading || alerts.length < 50} onClick={() => setPage((value) => value + 1)}>Next</button>
+      </div>
+
+      {/* Modal: Create Alert */}
       {isCreatingAlert && (
         <div className="modal-backdrop" onClick={() => setIsCreatingAlert(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <Radio size={20} color="#ef4444" />
-                <h3 style={{ color: '#ffffff' }}>Broadcast Telemetry Warning Alert</h3>
+                <h3 style={{ color: '#ffffff' }}>Create Ward Alert</h3>
               </div>
               <button 
                 onClick={() => setIsCreatingAlert(false)}
@@ -362,6 +404,8 @@ export default function AlertsView({ onEscalateToIncident }) {
                 />
               </div>
 
+              {error && <p role="alert" style={{ color: '#fca5a5' }}>{error}</p>}
+
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 12 }}>
                 <button
                   type="button"
@@ -372,10 +416,30 @@ export default function AlertsView({ onEscalateToIncident }) {
                 </button>
                 <button type="submit" className="btn btn-danger">
                   <Send size={14} />
-                  <span>Broadcast Alert</span>
+                  <span>Create Alert</span>
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {historyAlert && (
+        <div className="modal-backdrop" onClick={() => setHistoryAlert(null)}>
+          <div className="modal-content" onClick={(event) => event.stopPropagation()}>
+            <h3 style={{ marginBottom: 8 }}>Alert History</h3>
+            <p style={{ marginBottom: 16 }}>{historyAlert.title}</p>
+            {historyError ? <p role="alert" style={{ color: '#fca5a5' }}>{historyError}</p> : (
+              <ol style={{ paddingLeft: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {historyEvents.map((event) => (
+                  <li key={event.id}>
+                    <strong>{event.to_status}</strong>
+                    {' · '}{new Date(event.occurred_at).toLocaleString()}
+                  </li>
+                ))}
+              </ol>
+            )}
+            <button className="btn btn-secondary" style={{ marginTop: 24 }} onClick={() => setHistoryAlert(null)}>Close</button>
           </div>
         </div>
       )}

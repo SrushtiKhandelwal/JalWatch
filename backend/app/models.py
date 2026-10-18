@@ -125,6 +125,21 @@ class Alert(Base):
 
     # Relationships
     ward = relationship("Ward", back_populates="alerts")
+    events = relationship("AlertEvent", back_populates="alert", order_by="AlertEvent.id")
+
+
+class AlertEvent(Base):
+    """Append-only history of alert creation and acknowledgement decisions."""
+
+    __tablename__ = "alert_events"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    alert_id = Column(Integer, ForeignKey("alerts.id"), nullable=False, index=True)
+    from_status = Column(String, nullable=True)
+    to_status = Column(String, nullable=False)
+    occurred_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+
+    alert = relationship("Alert", back_populates="events")
 
 
 # [ INCIDENT: tracked work order and crew response ]
@@ -154,3 +169,20 @@ class Incident(Base):
 
     # Relationships
     ward = relationship("Ward", back_populates="incidents")
+    events = relationship("IncidentEvent", back_populates="incident", order_by="IncidentEvent.id")
+
+
+class IncidentEvent(Base):
+    """Append-only history of operational changes to an incident."""
+
+    __tablename__ = "incident_events"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    incident_id = Column(String, ForeignKey("incidents.incident_id"), nullable=False, index=True)
+    from_status = Column(String, nullable=True)
+    to_status = Column(String, nullable=False)
+    assigned_to = Column(String, nullable=True)
+    note = Column(Text, nullable=True)
+    occurred_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+
+    incident = relationship("Incident", back_populates="events")
