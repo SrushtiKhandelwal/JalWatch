@@ -16,7 +16,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from .config import settings
 from .auth import access_configured, require_session, router as auth_router
 from .database import engine, Base
-from .routers import complaints, wards, alerts, incidents, dashboard, predictions
+from .routers import complaints, wards, alerts, incidents, dashboard, predictions, network
 
 # Create database tables on startup (if they don't exist)
 Base.metadata.create_all(bind=engine)
@@ -48,6 +48,7 @@ app.include_router(auth_router, prefix=settings.API_PREFIX)
 for protected_router in (
     dashboard.router, complaints.router, wards.router,
     alerts.router, incidents.router, predictions.router,
+    network.router,
 ):
     app.include_router(
         protected_router,
@@ -73,6 +74,8 @@ def root():
             "alerts": f"{settings.API_PREFIX}/alerts",
             "incidents": f"{settings.API_PREFIX}/incidents",
             "predictions": f"{settings.API_PREFIX}/predictions/risk",
+            "network_nodes": f"{settings.API_PREFIX}/network/nodes",
+            "network_pipes": f"{settings.API_PREFIX}/network/pipes",
         },
     }
 

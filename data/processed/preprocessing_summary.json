@@ -1,0 +1,43 @@
+{
+  "started_at": "2026-10-21T13:57:17.071644+00:00",
+  "status": "COMPLETED",
+  "steps": {
+    "wards": {
+      "dataset": "wards_master",
+      "processed_rows": 38,
+      "rejected_rows": 0,
+      "output_csv": "wards_master_cleaned.csv",
+      "output_geojson": "wards_representative_points.geojson"
+    },
+    "localities": {
+      "dataset": "wards_localities",
+      "processed_rows": 860,
+      "rejected_rows": 0,
+      "output_csv": "wards_localities_cleaned.csv"
+    },
+    "nodes": {
+      "dataset": "water_network_nodes",
+      "processed_rows": 800,
+      "rejected_rows": 0,
+      "output_csv": "water_network_nodes_cleaned.csv",
+      "output_geojson": "water_network_nodes.geojson"
+    },
+    "pipes": {
+      "dataset": "water_network_pipes",
+      "processed_rows": 1450,
+      "rejected_rows": 0,
+      "output_csv": "water_network_pipes_cleaned.csv",
+      "output_geojson": "water_network_pipes.geojson"
+    },
+    "complaints_sample": {
+      "dataset": "complaints",
+      "total_raw_rows": 50000,
+      "processed_sample_rows": 1000,
+      "rejected_rows": 0,
+      "pii_sanitized": true,
+      "output_csv": "complaints_sample_sanitized_1000.csv"
+    }
+  },
+  "completed_at": "2026-10-21T13:57:17.562206+00:00",
+  "duration_seconds": 0.490562
+}

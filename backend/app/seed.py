@@ -21,7 +21,7 @@ if sys.stderr and hasattr(sys.stderr, "reconfigure"):
 
 # Fix imports when running as module
 from backend.app.database import engine, SessionLocal, Base
-from backend.app.models import Ward, Complaint, Alert, Incident
+from backend.app.models import Ward, Complaint, Alert, Incident, NetworkNode, NetworkPipe
 from backend.app.config import settings
 
 
@@ -42,15 +42,19 @@ def seed_database(force: bool = False):
             return
 
         _seed_wards(db)
+        _seed_network_nodes(db)
+        _seed_network_pipes(db)
         _seed_complaints(db)
         _seed_mock_alerts(db)
         _seed_mock_incidents(db)
 
         print("\n🎉 Database seeding complete!")
-        print(f"   Wards:      {db.query(Ward).count()}")
-        print(f"   Complaints: {db.query(Complaint).count()}")
-        print(f"   Alerts:     {db.query(Alert).count()}")
-        print(f"   Incidents:  {db.query(Incident).count()}")
+        print(f"   Wards:         {db.query(Ward).count()}")
+        print(f"   Network Nodes: {db.query(NetworkNode).count()} (Synthetic Preview)")
+        print(f"   Network Pipes: {db.query(NetworkPipe).count()} (Synthetic Preview)")
+        print(f"   Complaints:    {db.query(Complaint).count()}")
+        print(f"   Alerts:        {db.query(Alert).count()}")
+        print(f"   Incidents:     {db.query(Incident).count()}")
     finally:
         db.close()
 
@@ -81,6 +85,80 @@ def _seed_wards(db):
 
         db.commit()
         print(f"   ✓ Loaded {count} wards")
+
+
+# ── Load water network nodes from CSV ────────────────────
+
+def _seed_network_nodes(db):
+    csv_path = settings.RAW_DATA_DIR / "water_network_nodes.csv"
+    print(f"\n💧 Loading water network nodes from {csv_path.name} (Synthetic Preview)...")
+
+    with open(csv_path, "r", encoding="utf-8-sig") as f:
+        reader = csv.DictReader(f)
+        count = 0
+        batch = []
+        for row in reader:
+            node = NetworkNode(
+                node_id=row["node_id"].strip(),
+                node_type=row["node_type"].strip(),
+                ward_id=row["ward_id"].strip(),
+                latitude=float(row["latitude"]),
+                longitude=float(row["longitude"]),
+                elevation_m=float(row["elevation_m"]) if row.get("elevation_m") else None,
+                data_origin=row.get("data_origin", "synthetic"),
+                scenario_id=row.get("scenario_id"),
+            )
+            batch.append(node)
+            count += 1
+            if len(batch) >= 500:
+                db.add_all(batch)
+                db.commit()
+                batch = []
+
+        if batch:
+            db.add_all(batch)
+            db.commit()
+
+        print(f"   ✓ Loaded {count} network nodes")
+
+
+# ── Load water network pipes from CSV ────────────────────
+
+def _seed_network_pipes(db):
+    csv_path = settings.RAW_DATA_DIR / "water_network_pipes.csv"
+    print(f"\n🚰 Loading water network distribution pipes from {csv_path.name} (Synthetic Preview)...")
+
+    with open(csv_path, "r", encoding="utf-8-sig") as f:
+        reader = csv.DictReader(f)
+        count = 0
+        batch = []
+        for row in reader:
+            pipe = NetworkPipe(
+                pipe_id=row["pipe_id"].strip(),
+                from_node_id=row["from_node_id"].strip(),
+                to_node_id=row["to_node_id"].strip(),
+                geometry=row["geometry"].strip(),
+                diameter_mm=int(row["diameter_mm"]) if row.get("diameter_mm") else None,
+                material=row.get("material", "").strip() or None,
+                length_m=float(row["length_m"]) if row.get("length_m") else None,
+                valve_status=row.get("valve_status", "open").strip(),
+                flow_direction=row.get("flow_direction", "forward").strip(),
+                ward_id=row["ward_id"].strip(),
+                data_origin=row.get("data_origin", "synthetic"),
+                scenario_id=row.get("scenario_id"),
+            )
+            batch.append(pipe)
+            count += 1
+            if len(batch) >= 500:
+                db.add_all(batch)
+                db.commit()
+                batch = []
+
+        if batch:
+            db.add_all(batch)
+            db.commit()
+
+        print(f"   ✓ Loaded {count} network pipes")
 
 
 # ── Load complaints from CSV ────────────────────────────

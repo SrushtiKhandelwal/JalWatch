@@ -65,6 +65,22 @@ export const api = {
   getWards: () => fetchJson(`${BASE_URL}/wards`),
   getWardById: (id) => fetchJson(`${BASE_URL}/wards/${id}`),
   getWardStats: (id) => fetchJson(`${BASE_URL}/wards/${id}/stats`),
+  getNetworkNodes: (params = {}) => {
+    const sp = new URLSearchParams();
+    if (params.ward_id) sp.set('ward_id', params.ward_id);
+    if (params.node_type) sp.set('node_type', params.node_type);
+    const qs = sp.toString();
+    return fetchJson(`${BASE_URL}/network/nodes${qs ? `?${qs}` : ''}`);
+  },
+  getNetworkPipes: (params = {}) => {
+    const sp = new URLSearchParams();
+    if (params.ward_id) sp.set('ward_id', params.ward_id);
+    if (params.valve_status) sp.set('valve_status', params.valve_status);
+    if (params.material) sp.set('material', params.material);
+    const qs = sp.toString();
+    return fetchJson(`${BASE_URL}/network/pipes${qs ? `?${qs}` : ''}`);
+  },
+  getNetworkSummary: () => fetchJson(`${BASE_URL}/network/summary`),
 
   // Alerts System
   getAlerts: (params = {}) => {

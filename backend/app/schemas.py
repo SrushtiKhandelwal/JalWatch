@@ -7,7 +7,7 @@ These are application data contracts:
 """
 
 from pydantic import BaseModel, ConfigDict, Field
-from typing import Optional, List, Literal
+from typing import Optional, List, Literal, Dict, Any, Union
 from datetime import datetime
 
 
@@ -270,3 +270,57 @@ class PredictionResponse(BaseModel):
     contributing_factors: List[str]
     confidence: float
     generated_at: datetime
+
+
+# [ GEOJSON & SPATIAL NETWORK SCHEMAS ]
+
+class GeoJSONGeometry(BaseModel):
+    type: str
+    coordinates: Any
+
+
+class GeoJSONFeature(BaseModel):
+    type: Literal["Feature"] = "Feature"
+    id: Union[str, int]
+    geometry: GeoJSONGeometry
+    properties: Dict[str, Any]
+
+
+class GeoJSONFeatureCollection(BaseModel):
+    type: Literal["FeatureCollection"] = "FeatureCollection"
+    features: List[GeoJSONFeature]
+    metadata: Optional[Dict[str, Any]] = None
+
+
+class NetworkNodeProperties(BaseModel):
+    node_id: str
+    node_type: str
+    ward_id: str
+    elevation_m: Optional[float] = None
+    data_origin: str = "synthetic"
+    is_demo: bool = True
+
+
+class NetworkPipeProperties(BaseModel):
+    pipe_id: str
+    from_node_id: str
+    to_node_id: str
+    diameter_mm: Optional[int] = None
+    material: Optional[str] = None
+    length_m: Optional[float] = None
+    valve_status: Optional[str] = "open"
+    flow_direction: Optional[str] = "forward"
+    ward_id: str
+    data_origin: str = "synthetic"
+    is_demo: bool = True
+
+
+class NetworkSummary(BaseModel):
+    total_nodes: int
+    total_pipes: int
+    total_pipe_length_km: float
+    node_types: Dict[str, int]
+    materials: Dict[str, int]
+    valve_statuses: Dict[str, int]
+    data_origin: str = "synthetic"
+    is_demo: bool = True

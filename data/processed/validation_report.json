@@ -1,0 +1,121 @@
+{
+  "timestamp": "2026-10-21T13:57:02.369346+00:00",
+  "overall_status": "PASS",
+  "datasets": {
+    "wards_master": {
+      "file": "wards_master.csv",
+      "status": "PASS",
+      "row_count": 38,
+      "errors": [],
+      "warnings": [
+        "Ward boundary_geojson column contains PDF map references (https://election.nagpurnmc.in/...). Representative points are used for map visualization to avoid fabricating synthetic boundaries."
+      ],
+      "provenance": {
+        "source_types": {
+          "derived": 38
+        },
+        "is_official_municipal": true,
+        "is_synthetic": false
+      },
+      "boundary_assessment": {
+        "total_boundary_entries": 38,
+        "pdf_references_detected": 38,
+        "genuine_polygons_detected": 0,
+        "conclusion": "All boundary_geojson values are external PDF URL references to official NMC maps. No genuine GeoJSON polygon geometry exists in this CSV. Representative point fallback must be used."
+      },
+      "unique_ward_count": 38,
+      "invalid_coordinate_count": 0
+    },
+    "wards_localities": {
+      "file": "wards_localities.csv",
+      "status": "PASS",
+      "row_count": 860,
+      "errors": [],
+      "warnings": [],
+      "unique_locality_count": 860,
+      "invalid_coordinate_count": 0,
+      "pdf_boundary_references": 860
+    },
+    "water_network_nodes": {
+      "file": "water_network_nodes.csv",
+      "status": "PASS",
+      "row_count": 800,
+      "errors": [],
+      "warnings": [
+        "Water network nodes are synthetic demonstration data. Must be labeled as preview in API and map."
+      ],
+      "provenance": {
+        "data_origin": {
+          "synthetic": 800
+        },
+        "is_synthetic": true,
+        "demo_status": "Synthetic preview layer. Not verified municipal infrastructure or live telemetry."
+      },
+      "unique_node_count": 800,
+      "invalid_coordinate_count": 0
+    },
+    "water_network_pipes": {
+      "file": "water_network_pipes.csv",
+      "status": "PASS",
+      "row_count": 1450,
+      "errors": [],
+      "warnings": [
+        "Water network pipes are synthetic demonstration data. Must be labeled as preview in API and map."
+      ],
+      "geometry_check": {
+        "valid_linestrings": 1450,
+        "invalid_geometries": 0,
+        "vertices_outside_nagpur": 0,
+        "endpoint_node_alignment_mismatches": 0
+      },
+      "provenance": {
+        "data_origin": {
+          "synthetic": 1450
+        },
+        "is_synthetic": true,
+        "demo_status": "Synthetic preview layer. Not verified municipal infrastructure or live telemetry."
+      },
+      "unique_pipe_count": 1450
+    },
+    "complaints": {
+      "file": "jalwatch_complaints_final_50000.csv",
+      "status": "PASS",
+      "row_count": 50000,
+      "errors": [],
+      "warnings": [],
+      "pii_assessment": {
+        "citizen_id_present": true,
+        "citizen_id_count": 41056,
+        "recommendation": "Citizen IDs are pseudonymous identifiers (e.g. CIT001400) in synthetic training data. To safeguard citizen privacy in production, citizen_id must never be exposed via map popups, public API logs, or unauthenticated endpoints."
+      },
+      "provenance": {
+        "data_origin": {
+          "synthetic": 50000
+        },
+        "is_synthetic": true,
+        "demo_status": "Synthetic dataset (50,000 complaints) for modeling and visualization."
+      },
+      "unique_complaint_count": 50000,
+      "invalid_coordinate_count": 0
+    }
+  },
+  "cross_dataset_integrity": {},
+  "boundary_findings": {
+    "status": "PDF_REFERENCE_ONLY",
+    "description": "The boundary_geojson fields in wards_master.csv and wards_localities.csv contain external URLs referencing Nagpur Municipal Corporation consolidated PDF maps. No genuine spatial polygon geometry is included. To prevent geographic fabrication, representative points (lat/lon) are retained as truth."
+  },
+  "summary": {
+    "total_datasets_inspected": 5,
+    "wards_count": 38,
+    "localities_count": 860,
+    "nodes_count": 800,
+    "pipes_count": 1450,
+    "complaints_count": 50000,
+    "nagpur_bounding_box": {
+      "min_lat": 21.0,
+      "max_lat": 21.3,
+      "min_lon": 79.0,
+      "max_lon": 79.3
+    }
+  }
+}

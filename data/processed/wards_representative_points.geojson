@@ -1,0 +1,925 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "W001",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          79.085,
+          21.2
+        ]
+      },
+      "properties": {
+        "ward_id": "W001",
+        "ward_number": 1,
+        "ward_name": "Ward 1",
+        "zone_id": "Z09",
+        "zone_name": "AshiNagar",
+        "locality_count": 20,
+        "latitude": 21.2,
+        "longitude": 79.085,
+        "has_polygon_boundary": false,
+        "boundary_source_type": "derived",
+        "boundary_document_url": "https://election.nagpurnmc.in/storage/uploads/1759544972_NMC%20GIS%20Full%20Map.pdf"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "W002",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          79.125,
+          21.19
+        ]
+      },
+      "properties": {
+        "ward_id": "W002",
+        "ward_number": 2,
+        "ward_name": "Ward 2",
+        "zone_id": "Z09",
+        "zone_name": "AshiNagar",
+        "locality_count": 29,
+        "latitude": 21.19,
+        "longitude": 79.125,
+        "has_polygon_boundary": false,
+        "boundary_source_type": "derived",
+        "boundary_document_url": "https://election.nagpurnmc.in/storage/uploads/1759544972_NMC%20GIS%20Full%20Map.pdf"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "W003",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          79.13,
+          21.17
+        ]
+      },
+      "properties": {
+        "ward_id": "W003",
+        "ward_number": 3,
+        "ward_name": "Ward 3",
+        "zone_id": "Z09",
+        "zone_name": "AshiNagar",
+        "locality_count": 22,
+        "latitude": 21.17,
+        "longitude": 79.13,
+        "has_polygon_boundary": false,
+        "boundary_source_type": "derived",
+        "boundary_document_url": "https://election.nagpurnmc.in/storage/uploads/1759544972_NMC%20GIS%20Full%20Map.pdf"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "W004",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          79.16,
+          21.17
+        ]
+      },
+      "properties": {
+        "ward_id": "W004",
+        "ward_number": 4,
+        "ward_name": "Ward 4",
+        "zone_id": "Z08",
+        "zone_name": "Lakadganj",
+        "locality_count": 5,
+        "latitude": 21.17,
+        "longitude": 79.16,
+        "has_polygon_boundary": false,
+        "boundary_source_type": "derived",
+        "boundary_document_url": "https://election.nagpurnmc.in/storage/uploads/1759544972_NMC%20GIS%20Full%20Map.pdf"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "W005",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          79.105,
+          21.17
+        ]
+      },
+      "properties": {
+        "ward_id": "W005",
+        "ward_number": 5,
+        "ward_name": "Ward 5",
+        "zone_id": "Z07",
+        "zone_name": "Satranjipura",
+        "locality_count": 25,
+        "latitude": 21.17,
+        "longitude": 79.105,
+        "has_polygon_boundary": false,
+        "boundary_source_type": "derived",
+        "boundary_document_url": "https://election.nagpurnmc.in/storage/uploads/1759544972_NMC%20GIS%20Full%20Map.pdf"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "W006",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          79.095,
+          21.175
+        ]
+      },
+      "properties": {
+        "ward_id": "W006",
+        "ward_number": 6,
+        "ward_name": "Ward 6",
+        "zone_id": "Z09",
+        "zone_name": "AshiNagar",
+        "locality_count": 26,
+        "latitude": 21.175,
+        "longitude": 79.095,
+        "has_polygon_boundary": false,
+        "boundary_source_type": "derived",
+        "boundary_document_url": "https://election.nagpurnmc.in/storage/uploads/1759544972_NMC%20GIS%20Full%20Map.pdf"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "W007",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          79.085,
+          21.17
+        ]
+      },
+      "properties": {
+        "ward_id": "W007",
+        "ward_number": 7,
+        "ward_name": "Ward 7",
+        "zone_id": "Z09",
+        "zone_name": "AshiNagar",
+        "locality_count": 31,
+        "latitude": 21.17,
+        "longitude": 79.085,
+        "has_polygon_boundary": false,
+        "boundary_source_type": "derived",
+        "boundary_document_url": "https://election.nagpurnmc.in/storage/uploads/1759544972_NMC%20GIS%20Full%20Map.pdf"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "W008",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          79.105,
+          21.155
+        ]
+      },
+      "properties": {
+        "ward_id": "W008",
+        "ward_number": 8,
+        "ward_name": "Ward 8",
+        "zone_id": "Z06",
+        "zone_name": "Gandhibag",
+        "locality_count": 17,
+        "latitude": 21.155,
+        "longitude": 79.105,
+        "has_polygon_boundary": false,
+        "boundary_source_type": "derived",
+        "boundary_document_url": "https://election.nagpurnmc.in/storage/uploads/1759544972_NMC%20GIS%20Full%20Map.pdf"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "W009",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          79.085,
+          21.18
+        ]
+      },
+      "properties": {
+        "ward_id": "W009",
+        "ward_number": 9,
+        "ward_name": "Ward 9",
+        "zone_id": "Z10",
+        "zone_name": "Mangalwari",
+        "locality_count": 26,
+        "latitude": 21.18,
+        "longitude": 79.085,
+        "has_polygon_boundary": false,
+        "boundary_source_type": "derived",
+        "boundary_document_url": "https://election.nagpurnmc.in/storage/uploads/1759544972_NMC%20GIS%20Full%20Map.pdf"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "W010",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          79.065,
+          21.185
+        ]
+      },
+      "properties": {
+        "ward_id": "W010",
+        "ward_number": 10,
+        "ward_name": "Ward 10",
+        "zone_id": "Z10",
+        "zone_name": "Mangalwari",
+        "locality_count": 27,
+        "latitude": 21.185,
+        "longitude": 79.065,
+        "has_polygon_boundary": false,
+        "boundary_source_type": "derived",
+        "boundary_document_url": "https://election.nagpurnmc.in/storage/uploads/1759544972_NMC%20GIS%20Full%20Map.pdf"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "W011",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          79.065,
+          21.205
+        ]
+      },
+      "properties": {
+        "ward_id": "W011",
+        "ward_number": 11,
+        "ward_name": "Ward 11",
+        "zone_id": "Z10",
+        "zone_name": "Mangalwari",
+        "locality_count": 14,
+        "latitude": 21.205,
+        "longitude": 79.065,
+        "has_polygon_boundary": false,
+        "boundary_source_type": "derived",
+        "boundary_document_url": "https://election.nagpurnmc.in/storage/uploads/1759544972_NMC%20GIS%20Full%20Map.pdf"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "W012",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          79.045,
+          21.165
+        ]
+      },
+      "properties": {
+        "ward_id": "W012",
+        "ward_number": 12,
+        "ward_name": "Ward 12",
+        "zone_id": "Z02",
+        "zone_name": "Dharmpeth",
+        "locality_count": 14,
+        "latitude": 21.165,
+        "longitude": 79.045,
+        "has_polygon_boundary": false,
+        "boundary_source_type": "derived",
+        "boundary_document_url": "https://election.nagpurnmc.in/storage/uploads/1759544972_NMC%20GIS%20Full%20Map.pdf"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "W013",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          79.055,
+          21.145
+        ]
+      },
+      "properties": {
+        "ward_id": "W013",
+        "ward_number": 13,
+        "ward_name": "Ward 13",
+        "zone_id": "Z02",
+        "zone_name": "Dharmpeth",
+        "locality_count": 28,
+        "latitude": 21.145,
+        "longitude": 79.055,
+        "has_polygon_boundary": false,
+        "boundary_source_type": "derived",
+        "boundary_document_url": "https://election.nagpurnmc.in/storage/uploads/1759544972_NMC%20GIS%20Full%20Map.pdf"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "W014",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          79.08,
+          21.155
+        ]
+      },
+      "properties": {
+        "ward_id": "W014",
+        "ward_number": 14,
+        "ward_name": "Ward 14",
+        "zone_id": "Z02",
+        "zone_name": "Dharmpeth",
+        "locality_count": 40,
+        "latitude": 21.155,
+        "longitude": 79.08,
+        "has_polygon_boundary": false,
+        "boundary_source_type": "derived",
+        "boundary_document_url": "https://election.nagpurnmc.in/storage/uploads/1759544972_NMC%20GIS%20Full%20Map.pdf"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "W015",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          79.075,
+          21.14
+        ]
+      },
+      "properties": {
+        "ward_id": "W015",
+        "ward_number": 15,
+        "ward_name": "Ward 15",
+        "zone_id": "Z02",
+        "zone_name": "Dharmpeth",
+        "locality_count": 37,
+        "latitude": 21.14,
+        "longitude": 79.075,
+        "has_polygon_boundary": false,
+        "boundary_source_type": "derived",
+        "boundary_document_url": "https://election.nagpurnmc.in/storage/uploads/1759544972_NMC%20GIS%20Full%20Map.pdf"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "W016",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          79.08,
+          21.125
+        ]
+      },
+      "properties": {
+        "ward_id": "W016",
+        "ward_number": 16,
+        "ward_name": "Ward 16",
+        "zone_id": "Z01",
+        "zone_name": "Laxmi Nagar",
+        "locality_count": 42,
+        "latitude": 21.125,
+        "longitude": 79.08,
+        "has_polygon_boundary": false,
+        "boundary_source_type": "derived",
+        "boundary_document_url": "https://election.nagpurnmc.in/storage/uploads/1759544972_NMC%20GIS%20Full%20Map.pdf"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "W017",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          79.095,
+          21.135
+        ]
+      },
+      "properties": {
+        "ward_id": "W017",
+        "ward_number": 17,
+        "ward_name": "Ward 17",
+        "zone_id": "Z04",
+        "zone_name": "Dhantoli",
+        "locality_count": 30,
+        "latitude": 21.135,
+        "longitude": 79.095,
+        "has_polygon_boundary": false,
+        "boundary_source_type": "derived",
+        "boundary_document_url": "https://election.nagpurnmc.in/storage/uploads/1759544972_NMC%20GIS%20Full%20Map.pdf"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "W018",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          79.105,
+          21.15
+        ]
+      },
+      "properties": {
+        "ward_id": "W018",
+        "ward_number": 18,
+        "ward_name": "Ward 18",
+        "zone_id": "Z06",
+        "zone_name": "Gandhibag",
+        "locality_count": 28,
+        "latitude": 21.15,
+        "longitude": 79.105,
+        "has_polygon_boundary": false,
+        "boundary_source_type": "derived",
+        "boundary_document_url": "https://election.nagpurnmc.in/storage/uploads/1759544972_NMC%20GIS%20Full%20Map.pdf"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "W019",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          79.11,
+          21.15
+        ]
+      },
+      "properties": {
+        "ward_id": "W019",
+        "ward_number": 19,
+        "ward_name": "Ward 19",
+        "zone_id": "Z06",
+        "zone_name": "Gandhibag",
+        "locality_count": 25,
+        "latitude": 21.15,
+        "longitude": 79.11,
+        "has_polygon_boundary": false,
+        "boundary_source_type": "derived",
+        "boundary_document_url": "https://election.nagpurnmc.in/storage/uploads/1759544972_NMC%20GIS%20Full%20Map.pdf"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "W020",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          79.12,
+          21.155
+        ]
+      },
+      "properties": {
+        "ward_id": "W020",
+        "ward_number": 20,
+        "ward_name": "Ward 20",
+        "zone_id": "Z07",
+        "zone_name": "Satranjipura",
+        "locality_count": 19,
+        "latitude": 21.155,
+        "longitude": 79.12,
+        "has_polygon_boundary": false,
+        "boundary_source_type": "derived",
+        "boundary_document_url": "https://election.nagpurnmc.in/storage/uploads/1759544972_NMC%20GIS%20Full%20Map.pdf"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "W021",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          79.125,
+          21.15
+        ]
+      },
+      "properties": {
+        "ward_id": "W021",
+        "ward_number": 21,
+        "ward_name": "Ward 21",
+        "zone_id": "Z07",
+        "zone_name": "Satranjipura",
+        "locality_count": 16,
+        "latitude": 21.15,
+        "longitude": 79.125,
+        "has_polygon_boundary": false,
+        "boundary_source_type": "derived",
+        "boundary_document_url": "https://election.nagpurnmc.in/storage/uploads/1759544972_NMC%20GIS%20Full%20Map.pdf"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "W022",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          79.125,
+          21.16
+        ]
+      },
+      "properties": {
+        "ward_id": "W022",
+        "ward_number": 22,
+        "ward_name": "Ward 22",
+        "zone_id": "Z06",
+        "zone_name": "Gandhibag",
+        "locality_count": 27,
+        "latitude": 21.16,
+        "longitude": 79.125,
+        "has_polygon_boundary": false,
+        "boundary_source_type": "derived",
+        "boundary_document_url": "https://election.nagpurnmc.in/storage/uploads/1759544972_NMC%20GIS%20Full%20Map.pdf"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "W023",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          79.145,
+          21.155
+        ]
+      },
+      "properties": {
+        "ward_id": "W023",
+        "ward_number": 23,
+        "ward_name": "Ward 23",
+        "zone_id": "Z08",
+        "zone_name": "Lakadganj",
+        "locality_count": 13,
+        "latitude": 21.155,
+        "longitude": 79.145,
+        "has_polygon_boundary": false,
+        "boundary_source_type": "derived",
+        "boundary_document_url": "https://election.nagpurnmc.in/storage/uploads/1759544972_NMC%20GIS%20Full%20Map.pdf"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "W024",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          79.155,
+          21.14
+        ]
+      },
+      "properties": {
+        "ward_id": "W024",
+        "ward_number": 24,
+        "ward_name": "Ward 24",
+        "zone_id": "Z08",
+        "zone_name": "Lakadganj",
+        "locality_count": 14,
+        "latitude": 21.14,
+        "longitude": 79.155,
+        "has_polygon_boundary": false,
+        "boundary_source_type": "derived",
+        "boundary_document_url": "https://election.nagpurnmc.in/storage/uploads/1759544972_NMC%20GIS%20Full%20Map.pdf"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "W025",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          79.155,
+          21.13
+        ]
+      },
+      "properties": {
+        "ward_id": "W025",
+        "ward_number": 25,
+        "ward_name": "Ward 25",
+        "zone_id": "Z08",
+        "zone_name": "Lakadganj",
+        "locality_count": 12,
+        "latitude": 21.13,
+        "longitude": 79.155,
+        "has_polygon_boundary": false,
+        "boundary_source_type": "derived",
+        "boundary_document_url": "https://election.nagpurnmc.in/storage/uploads/1759544972_NMC%20GIS%20Full%20Map.pdf"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "W026",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          79.145,
+          21.125
+        ]
+      },
+      "properties": {
+        "ward_id": "W026",
+        "ward_number": 26,
+        "ward_name": "Ward 26",
+        "zone_id": "Z05",
+        "zone_name": "Nehru Nagar",
+        "locality_count": 14,
+        "latitude": 21.125,
+        "longitude": 79.145,
+        "has_polygon_boundary": false,
+        "boundary_source_type": "derived",
+        "boundary_document_url": "https://election.nagpurnmc.in/storage/uploads/1759544972_NMC%20GIS%20Full%20Map.pdf"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "W027",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          79.125,
+          21.13
+        ]
+      },
+      "properties": {
+        "ward_id": "W027",
+        "ward_number": 27,
+        "ward_name": "Ward 27",
+        "zone_id": "Z05",
+        "zone_name": "Nehru Nagar",
+        "locality_count": 18,
+        "latitude": 21.13,
+        "longitude": 79.125,
+        "has_polygon_boundary": false,
+        "boundary_source_type": "derived",
+        "boundary_document_url": "https://election.nagpurnmc.in/storage/uploads/1759544972_NMC%20GIS%20Full%20Map.pdf"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "W028",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          79.125,
+          21.105
+        ]
+      },
+      "properties": {
+        "ward_id": "W028",
+        "ward_number": 28,
+        "ward_name": "Ward 28",
+        "zone_id": "Z05",
+        "zone_name": "Nehru Nagar",
+        "locality_count": 19,
+        "latitude": 21.105,
+        "longitude": 79.125,
+        "has_polygon_boundary": false,
+        "boundary_source_type": "derived",
+        "boundary_document_url": "https://election.nagpurnmc.in/storage/uploads/1759544972_NMC%20GIS%20Full%20Map.pdf"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "W029",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          79.105,
+          21.085
+        ]
+      },
+      "properties": {
+        "ward_id": "W029",
+        "ward_number": 29,
+        "ward_name": "Ward 29",
+        "zone_id": "Z03",
+        "zone_name": "Hanuman Nagar",
+        "locality_count": 16,
+        "latitude": 21.085,
+        "longitude": 79.105,
+        "has_polygon_boundary": false,
+        "boundary_source_type": "derived",
+        "boundary_document_url": "https://election.nagpurnmc.in/storage/uploads/1759544972_NMC%20GIS%20Full%20Map.pdf"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "W030",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          79.105,
+          21.11
+        ]
+      },
+      "properties": {
+        "ward_id": "W030",
+        "ward_number": 30,
+        "ward_name": "Ward 30",
+        "zone_id": "Z05",
+        "zone_name": "Nehru Nagar",
+        "locality_count": 17,
+        "latitude": 21.11,
+        "longitude": 79.105,
+        "has_polygon_boundary": false,
+        "boundary_source_type": "derived",
+        "boundary_document_url": "https://election.nagpurnmc.in/storage/uploads/1759544972_NMC%20GIS%20Full%20Map.pdf"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "W031",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          79.105,
+          21.135
+        ]
+      },
+      "properties": {
+        "ward_id": "W031",
+        "ward_number": 31,
+        "ward_name": "Ward 31",
+        "zone_id": "Z03",
+        "zone_name": "Hanuman Nagar",
+        "locality_count": 29,
+        "latitude": 21.135,
+        "longitude": 79.105,
+        "has_polygon_boundary": false,
+        "boundary_source_type": "derived",
+        "boundary_document_url": "https://election.nagpurnmc.in/storage/uploads/1759544972_NMC%20GIS%20Full%20Map.pdf"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "W032",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          79.115,
+          21.12
+        ]
+      },
+      "properties": {
+        "ward_id": "W032",
+        "ward_number": 32,
+        "ward_name": "Ward 32",
+        "zone_id": "Z03",
+        "zone_name": "Hanuman Nagar",
+        "locality_count": 27,
+        "latitude": 21.12,
+        "longitude": 79.115,
+        "has_polygon_boundary": false,
+        "boundary_source_type": "derived",
+        "boundary_document_url": "https://election.nagpurnmc.in/storage/uploads/1759544972_NMC%20GIS%20Full%20Map.pdf"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "W033",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          79.08,
+          21.115
+        ]
+      },
+      "properties": {
+        "ward_id": "W033",
+        "ward_number": 33,
+        "ward_name": "Ward 33",
+        "zone_id": "Z04",
+        "zone_name": "Dhantoli",
+        "locality_count": 27,
+        "latitude": 21.115,
+        "longitude": 79.08,
+        "has_polygon_boundary": false,
+        "boundary_source_type": "derived",
+        "boundary_document_url": "https://election.nagpurnmc.in/storage/uploads/1759544972_NMC%20GIS%20Full%20Map.pdf"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "W034",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          79.085,
+          21.095
+        ]
+      },
+      "properties": {
+        "ward_id": "W034",
+        "ward_number": 34,
+        "ward_name": "Ward 34",
+        "zone_id": "Z03",
+        "zone_name": "Hanuman Nagar",
+        "locality_count": 18,
+        "latitude": 21.095,
+        "longitude": 79.085,
+        "has_polygon_boundary": false,
+        "boundary_source_type": "derived",
+        "boundary_document_url": "https://election.nagpurnmc.in/storage/uploads/1759544972_NMC%20GIS%20Full%20Map.pdf"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "W035",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          79.065,
+          21.09
+        ]
+      },
+      "properties": {
+        "ward_id": "W035",
+        "ward_number": 35,
+        "ward_name": "Ward 35",
+        "zone_id": "Z04",
+        "zone_name": "Dhantoli",
+        "locality_count": 24,
+        "latitude": 21.09,
+        "longitude": 79.065,
+        "has_polygon_boundary": false,
+        "boundary_source_type": "derived",
+        "boundary_document_url": "https://election.nagpurnmc.in/storage/uploads/1759544972_NMC%20GIS%20Full%20Map.pdf"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "W036",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          79.075,
+          21.105
+        ]
+      },
+      "properties": {
+        "ward_id": "W036",
+        "ward_number": 36,
+        "ward_name": "Ward 36",
+        "zone_id": "Z01",
+        "zone_name": "Laxmi Nagar",
+        "locality_count": 27,
+        "latitude": 21.105,
+        "longitude": 79.075,
+        "has_polygon_boundary": false,
+        "boundary_source_type": "derived",
+        "boundary_document_url": "https://election.nagpurnmc.in/storage/uploads/1759544972_NMC%20GIS%20Full%20Map.pdf"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "W037",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          79.065,
+          21.115
+        ]
+      },
+      "properties": {
+        "ward_id": "W037",
+        "ward_number": 37,
+        "ward_name": "Ward 37",
+        "zone_id": "Z01",
+        "zone_name": "Laxmi Nagar",
+        "locality_count": 19,
+        "latitude": 21.115,
+        "longitude": 79.065,
+        "has_polygon_boundary": false,
+        "boundary_source_type": "derived",
+        "boundary_document_url": "https://election.nagpurnmc.in/storage/uploads/1759544972_NMC%20GIS%20Full%20Map.pdf"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "W038",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          79.035,
+          21.11
+        ]
+      },
+      "properties": {
+        "ward_id": "W038",
+        "ward_number": 38,
+        "ward_name": "Ward 38",
+        "zone_id": "Z01",
+        "zone_name": "Laxmi Nagar",
+        "locality_count": 18,
+        "latitude": 21.11,
+        "longitude": 79.035,
+        "has_polygon_boundary": false,
+        "boundary_source_type": "derived",
+        "boundary_document_url": "https://election.nagpurnmc.in/storage/uploads/1759544972_NMC%20GIS%20Full%20Map.pdf"
+      }
+    }
+  ],
+  "metadata": {
+    "layer_name": "wards_representative_points",
+    "feature_count": 38,
+    "geometry_type": "Point",
+    "crs": "urn:ogc:def:crs:OGC:1.3:CRS84",
+    "has_genuine_polygons": false,
+    "boundary_note": "Official NMC GIS polygon shapefile is unpublished; centroid representative points are retained as geographic reference to prevent boundary fabrication."
+  }
+}

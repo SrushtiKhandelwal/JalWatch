@@ -147,8 +147,8 @@ export default function App() {
 
         {activeTab === 'map' && (
           <>
-            <p style={{ marginBottom: 16 }}>
-              Map preview: ward centers and sampled complaint pins. Network layers and validated boundaries are pending Member 2’s data integration.
+            <p style={{ marginBottom: 16, color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+              Municipal GIS Spatial View: 38 administrative ward centers, citizen grievance pins, and preview water network infrastructure (nodes & distribution pipes).
             </p>
             <MapView selectedWardId={selectedMapWardId} />
           </>

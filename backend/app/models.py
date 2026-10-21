@@ -186,3 +186,43 @@ class IncidentEvent(Base):
     occurred_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
 
     incident = relationship("Incident", back_populates="events")
+
+
+# [ NETWORK: Water distribution infrastructure layers (Synthetic Demo) ]
+
+class NetworkNode(Base):
+    """Water distribution network node (junction, valve, pump, tank, reservoir)."""
+
+    __tablename__ = "network_nodes"
+
+    node_id = Column(String, primary_key=True, index=True)
+    node_type = Column(String, nullable=False)                    # junction | valve | pump_station | tank | reservoir
+    ward_id = Column(String, ForeignKey("wards.ward_id"), nullable=False, index=True)
+    latitude = Column(Float, nullable=False)
+    longitude = Column(Float, nullable=False)
+    elevation_m = Column(Float, nullable=True)
+    data_origin = Column(String, default="synthetic")
+    scenario_id = Column(String, nullable=True)
+
+    ward = relationship("Ward")
+
+
+class NetworkPipe(Base):
+    """Water distribution network pipeline segment."""
+
+    __tablename__ = "network_pipes"
+
+    pipe_id = Column(String, primary_key=True, index=True)
+    from_node_id = Column(String, nullable=False, index=True)
+    to_node_id = Column(String, nullable=False, index=True)
+    geometry = Column(Text, nullable=False)                       # GeoJSON LineString string
+    diameter_mm = Column(Integer, nullable=True)
+    material = Column(String, nullable=True)                      # MS | DI | HDPE | CI | PVC
+    length_m = Column(Float, nullable=True)
+    valve_status = Column(String, default="open")                 # open | closed
+    flow_direction = Column(String, default="forward")            # forward | reverse | bi
+    ward_id = Column(String, ForeignKey("wards.ward_id"), nullable=False, index=True)
+    data_origin = Column(String, default="synthetic")
+    scenario_id = Column(String, nullable=True)
+
+    ward = relationship("Ward")
