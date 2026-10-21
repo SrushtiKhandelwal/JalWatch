@@ -1,159 +1,137 @@
-"""
-Predictive Intelligence API: Machine Learning Risk Assessment.
+"""Synthetic-label model inference and explicit demo alert scanning."""
 
-Computes multi-factor risk scores, infrastructure vulnerability indices,
-and failure probabilities across Nagpur municipal wards.
-"""
+import json
+from datetime import datetime, timedelta, timezone
+from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import func
-from datetime import datetime, timezone
-import random
+
+from ml.predict import load_model
+from ml.train import EVALUATION_PATH
 
 from ..database import get_db
-from ..models import Complaint, Ward
-from ..schemas import PredictionRequest, PredictionResponse
+from ..models import Locality, Ward
+from ..schemas import (
+    PredictionRequest,
+    PredictionResponse,
+    RiskSignal,
+    ScanRequest,
+    ScanResponse,
+    WardRiskResponse,
+)
+from ..services.risk import risk_level, ward_risk_snapshots
+from .alerts import evaluate_risk_signal
 
-router = APIRouter(prefix="/predictions", tags=["Predictive Intelligence"])
+
+router = APIRouter(prefix="/predictions", tags=["Predictions"])
+
+
+def _snapshots(db: Session) -> list[WardRiskResponse]:
+    try:
+        return ward_risk_snapshots(db)
+    except (RuntimeError, ValueError) as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+
+@router.get("/model")
+def get_model_report():
+    """Return the saved chronological holdout metrics and label provenance."""
+    try:
+        return json.loads(EVALUATION_PATH.read_text(encoding="utf-8"))
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=503, detail="Model report is missing; run python -m ml.train") from exc
 
 
 @router.post("/risk", response_model=PredictionResponse)
 def predict_risk(request: PredictionRequest, db: Session = Depends(get_db)):
-    """
-    Compute single-point incident risk prediction for a ward.
-    """
-    ward = db.query(Ward).filter(Ward.ward_id == request.ward_id).first()
-    if not ward:
+    """Score one complaint at intake using the exact training feature path."""
+    if not db.query(Ward).filter(Ward.ward_id == request.ward_id).first():
         raise HTTPException(status_code=404, detail="Ward not found")
-
-    # Count complaints for this ward
-    total = db.query(func.count(Complaint.complaint_id)).filter(
-        Complaint.ward_id == request.ward_id
-    ).scalar()
-
-    critical = db.query(func.count(Complaint.complaint_id)).filter(
-        Complaint.ward_id == request.ward_id,
-        Complaint.severity == "critical",
-    ).scalar()
-
-    # Mock risk calculation
-    base_score = min(total / 500, 0.8)
-    critical_boost = min(critical / 100, 0.2)
-    risk_score = round(
-        min(base_score + critical_boost + random.uniform(-0.05, 0.05), 1.0), 3
-    )
-    risk_score = max(risk_score, 0.0)
-
-    if risk_score > 0.7:
-        risk_level = "critical"
-    elif risk_score > 0.5:
-        risk_level = "high"
-    elif risk_score > 0.3:
-        risk_level = "medium"
-    else:
-        risk_level = "low"
-
-    # Mock contributing factors
-    factors = []
-    if total > 200:
-        factors.append("High complaint volume in ward")
-    if critical > 30:
-        factors.append("Elevated critical-severity reports")
-    factors.append("Historical pattern analysis")
-    factors.append(f"Ward {ward.ward_name} density factor")
-
+    if request.locality_id:
+        locality = db.query(Locality).filter(Locality.locality_id == request.locality_id).first()
+        if not locality or locality.ward_id != request.ward_id:
+            raise HTTPException(status_code=422, detail="Locality does not belong to the selected ward")
+    try:
+        model = load_model()
+        score = model.predict_score(request.model_dump())
+    except (RuntimeError, ValueError) as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
     return PredictionResponse(
         ward_id=request.ward_id,
-        risk_score=risk_score,
-        risk_level=risk_level,
-        predicted_incidents=max(1, int(risk_score * 10)),
-        contributing_factors=factors,
-        confidence=round(0.65 + random.uniform(0, 0.25), 3),
+        risk_score=round(score, 4),
+        risk_level=risk_level(score),
+        model_version=model.version,
         generated_at=datetime.now(timezone.utc),
     )
 
 
-@router.get("/risk")
+@router.get("/risk", response_model=List[WardRiskResponse])
 def get_all_predictions(db: Session = Depends(get_db)):
+    """Rank wards by mean score of complaints in the latest 30 data days."""
+    return _snapshots(db)
+
+
+@router.get("/anomalies", response_model=List[WardRiskResponse])
+def get_complaint_anomalies(db: Session = Depends(get_db)):
+    """Show wards whose recent count is unusually high versus four prior weeks."""
+    return [snapshot for snapshot in _snapshots(db) if snapshot.is_anomalous]
+
+
+@router.post("/scan-alerts", response_model=ScanResponse)
+def scan_for_alerts(request: ScanRequest, db: Session = Depends(get_db)):
+    """Explicitly scan ward scores and create deduplicated demo alerts.
+
+    Stale data requires an explicit demo override. This endpoint never runs
+    automatically or claims to dispatch external notifications.
     """
-    Get incident risk predictions across all wards.
-    Batch model inference across all municipal wards.
-    """
-    wards = db.query(Ward).all()
-    results = []
+    snapshots = _snapshots(db)
+    data_through = snapshots[0].data_through if snapshots else None
+    if data_through and datetime.now(timezone.utc) - data_through > timedelta(days=7):
+        if not request.allow_stale_demo_data:
+            raise HTTPException(
+                status_code=409,
+                detail="Complaint data is more than seven days old; enable the demo override to scan it",
+            )
 
-    for ward in wards:
-        complaint_count = db.query(func.count(Complaint.complaint_id)).filter(
-            Complaint.ward_id == ward.ward_id
-        ).scalar()
-
-        # Deterministic but realistic score based on complaints
-        base = min(complaint_count / 300, 0.85)
-        risk = int(base * 100)
-        risk = min(max(risk, 15), 95)
-
-        if risk >= 75:
-            sev = "critical"
-            action = "Dispatch pressure logging crews & inspect feeder joints."
-        elif risk >= 50:
-            sev = "high"
-            action = "Increase chlorine dosing & survey for minor leakages."
-        elif risk >= 30:
-            sev = "medium"
-            action = "Routine acoustic pipe survey and reservoir level check."
+    created = []
+    deduplicated = 0
+    below_threshold = 0
+    now = datetime.now(timezone.utc)
+    for snapshot in snapshots:
+        if snapshot.risk_score is None:
+            continue
+        signal = RiskSignal(
+            ward_id=snapshot.ward_id,
+            risk_score=snapshot.risk_score,
+            severity_prediction=snapshot.risk_level,
+            model_version=snapshot.model_version,
+            contributing_factors=snapshot.contributing_factors,
+            generated_at=now,
+            is_demo=True,
+        )
+        decision = evaluate_risk_signal(signal, db)
+        if decision.alert_created and decision.alert:
+            created.append(decision.alert)
+        elif decision.reason == "Open model alert already exists":
+            deduplicated += 1
         else:
-            sev = "low"
-            action = "Standard preventive monitoring cycle."
+            below_threshold += 1
 
-        results.append({
-            "ward_id": ward.ward_id,
-            "ward_name": ward.ward_name,
-            "risk_score": risk,
-            "severity_prediction": sev,
-            "confidence": 0.82,
-            "recommended_action": action,
-        })
-
-    # Sort highest risk first
-    results.sort(key=lambda x: x["risk_score"], reverse=True)
-    return results
+    return ScanResponse(
+        processed_wards=len(snapshots),
+        anomalous_wards=sum(snapshot.is_anomalous for snapshot in snapshots),
+        created_alerts=len(created),
+        deduplicated_alerts=deduplicated,
+        below_threshold=below_threshold,
+        data_through=data_through,
+        alerts=created,
+    )
 
 
-@router.get("/risk/{ward_id}")
+@router.get("/risk/{ward_id}", response_model=WardRiskResponse)
 def get_ward_prediction(ward_id: str, db: Session = Depends(get_db)):
-    """Get single ward incident risk prediction."""
-    ward = db.query(Ward).filter(Ward.ward_id == ward_id).first()
-    if not ward:
-        raise HTTPException(status_code=404, detail="Ward not found")
-
-    complaint_count = db.query(func.count(Complaint.complaint_id)).filter(
-        Complaint.ward_id == ward.ward_id
-    ).scalar()
-
-    base = min(complaint_count / 300, 0.85)
-    risk = int(base * 100)
-    risk = min(max(risk, 15), 95)
-
-    if risk >= 75:
-        sev = "critical"
-        action = "Dispatch pressure logging crews & inspect feeder joints."
-    elif risk >= 50:
-        sev = "high"
-        action = "Increase chlorine dosing & survey for minor leakages."
-    elif risk >= 30:
-        sev = "medium"
-        action = "Routine acoustic pipe survey and reservoir level check."
-    else:
-        sev = "low"
-        action = "Standard preventive monitoring cycle."
-
-    return {
-        "ward_id": ward.ward_id,
-        "ward_name": ward.ward_name,
-        "risk_score": risk,
-        "severity_prediction": sev,
-        "confidence": 0.84,
-        "recommended_action": action,
-    }
-
+    for snapshot in _snapshots(db):
+        if snapshot.ward_id == ward_id:
+            return snapshot
+    raise HTTPException(status_code=404, detail="Ward not found")

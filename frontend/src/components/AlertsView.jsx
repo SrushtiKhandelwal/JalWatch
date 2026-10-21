@@ -137,7 +137,7 @@ export default function AlertsView({ onEscalateToIncident }) {
             </span>
           </div>
           <p style={{ fontSize: '0.875rem', marginTop: 4 }}>
-            Review, acknowledge, resolve, and escalate ward alerts. Seeded examples are demonstrations; model alerts appear after integration.
+            Review, acknowledge, resolve, and escalate ward alerts. Seeded examples and model scan alerts are demonstrations.
           </p>
         </div>
 

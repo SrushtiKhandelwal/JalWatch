@@ -82,6 +82,7 @@ function ChangeMapView({ coords, zoom }) {
 export default function MapView({ selectedWardId: initialWardId }) {
   // Spatial layer data
   const [wards, setWards] = useState([]);
+  const [localities, setLocalities] = useState([]);
   const [complaints, setComplaints] = useState([]);
   const [nodes, setNodes] = useState([]);
   const [pipes, setPipes] = useState([]);
@@ -123,6 +124,15 @@ export default function MapView({ selectedWardId: initialWardId }) {
       });
     return () => { isMounted = false; };
   }, []);
+
+  useEffect(() => {
+    if (!selectedWardId) return;
+    let isMounted = true;
+    api.getWardLocalities(selectedWardId)
+      .then((data) => { if (isMounted) setLocalities(data); })
+      .catch((err) => { if (isMounted) setError(`Failed to load localities: ${err.message}`); });
+    return () => { isMounted = false; };
+  }, [selectedWardId]);
 
   // Fetch layer data based on filters
   const fetchLayers = useCallback(async () => {
@@ -182,10 +192,10 @@ export default function MapView({ selectedWardId: initialWardId }) {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#ffffff' }}>
-              GIS Water Network & Grievance Heatmap
+              GIS Water Network & Complaint Map
             </h1>
             <span className="badge badge-medium" style={{ textTransform: 'none' }}>
-              Nagpur Municipal Spatial View
+              Nagpur Demo Spatial View
             </span>
           </div>
           <p style={{ fontSize: '0.875rem', marginTop: 4, color: 'var(--text-secondary)' }}>
@@ -587,7 +597,7 @@ export default function MapView({ selectedWardId: initialWardId }) {
                         border: '1px solid #e2e8f0',
                         color: '#475569',
                       }}>
-                        Representative point. Official polygon shapefile unpublished by NMC.
+                        Ward representative point. No boundary polygon is included in the dataset.
                       </div>
                     </div>
                   </Popup>
@@ -732,6 +742,19 @@ export default function MapView({ selectedWardId: initialWardId }) {
                   <span style={{ color: 'var(--text-muted)' }}>Localities Count</span>
                   <span style={{ fontWeight: 600, color: '#ffffff' }}>{selectedFeature.data.locality_count} Areas</span>
                 </div>
+                <div>
+                  <strong>Named localities</strong>
+                  <p style={{ fontSize: '0.72rem', marginTop: 4 }}>
+                    Locality coordinates in the source are ward representative points, not precise locality positions.
+                  </p>
+                  <ul style={{ maxHeight: 180, overflowY: 'auto', paddingLeft: 18, marginTop: 8 }}>
+                    {localities.map((locality) => (
+                      <li key={locality.locality_id}>
+                        {locality.locality_name} <span style={{ color: 'var(--text-muted)' }}>({locality.locality_id})</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 6 }}>
                   <span style={{ color: 'var(--text-muted)' }}>Center Coordinates</span>
                   <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem' }}>
@@ -753,8 +776,8 @@ export default function MapView({ selectedWardId: initialWardId }) {
                     <span>Boundary Geometry Status</span>
                   </div>
                   <span>
-                    Official NMC 2025 ward boundaries are referenced via consolidated PDF document links.
-                    Centroid representative points are preserved truthful to municipal records.
+                    The bundled boundary field contains PDF links, not polygon geometry.
+                    Ward markers use the representative coordinates supplied in the dataset.
                   </span>
                 </div>
               </div>

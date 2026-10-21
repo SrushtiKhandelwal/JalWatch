@@ -1,13 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { lazy, Suspense, useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
-import DashboardView from './components/DashboardView';
-import AlertsView from './components/AlertsView';
-import IncidentsView from './components/IncidentsView';
-import MapView from './components/MapView';
-import ComplaintsView from './components/ComplaintsView';
-import NewIncidentModal from './components/NewIncidentModal';
 import { api } from './api';
 import { Droplet, ExternalLink } from 'lucide-react';
+
+const DashboardView = lazy(() => import('./components/DashboardView'));
+const AlertsView = lazy(() => import('./components/AlertsView'));
+const IncidentsView = lazy(() => import('./components/IncidentsView'));
+const MapView = lazy(() => import('./components/MapView'));
+const ComplaintsView = lazy(() => import('./components/ComplaintsView'));
+const PredictionsView = lazy(() => import('./components/PredictionsView'));
+const NewIncidentModal = lazy(() => import('./components/NewIncidentModal'));
 
 export default function App() {
   const [authStatus, setAuthStatus] = useState('loading');
@@ -122,6 +124,7 @@ export default function App() {
         padding: '24px 24px 60px',
         flex: 1
       }}>
+        <Suspense fallback={<p>Loading view…</p>}>
         {activeTab === 'dashboard' && (
           <DashboardView
             onSelectWard={handleSelectWardFromDashboard}
@@ -148,7 +151,7 @@ export default function App() {
         {activeTab === 'map' && (
           <>
             <p style={{ marginBottom: 16, color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-              Municipal GIS Spatial View: 38 administrative ward centers, citizen grievance pins, and preview water network infrastructure (nodes & distribution pipes).
+              Demo spatial view: 38 ward representative points, synthetic complaint pins, and preview water network nodes and pipes.
             </p>
             <MapView selectedWardId={selectedMapWardId} />
           </>
@@ -159,17 +162,13 @@ export default function App() {
         )}
 
         {activeTab === 'predictions' && (
-          <div className="glass-card" style={{ padding: 32 }}>
-            <h1>Risk model integration pending</h1>
-            <p style={{ marginTop: 12 }}>
-              Member 1 will provide validated incident risk predictions. The alert evaluator accepts those results through the documented model signal contract.
-            </p>
-          </div>
+          <PredictionsView onAlertsChanged={updateAlertCount} onNavigateAlerts={() => setActiveTab('alerts')} />
         )}
+        </Suspense>
       </main>
 
       {/* New Incident / Escalation Modal */}
-      <NewIncidentModal
+      {isIncidentModalOpen && <Suspense fallback={null}><NewIncidentModal
         isOpen={isIncidentModalOpen}
         onClose={() => {
           setIsIncidentModalOpen(false);
@@ -181,7 +180,7 @@ export default function App() {
           setIncidentRevision((current) => current + 1);
           setActiveTab('incidents');
         }}
-      />
+      /></Suspense>}
 
       {/* Footer */}
       <footer style={{
@@ -205,19 +204,19 @@ export default function App() {
             <Droplet size={16} color="var(--primary)" />
             <span style={{ color: '#ffffff', fontWeight: 700 }}>JalWatch</span>
             <span style={{ color: 'var(--border-subtle)' }}>|</span>
-            <span>Nagpur Municipal Corporation Water Intelligence Platform</span>
+            <span>Water complaint monitoring demonstration</span>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <span className="live-pulse" style={{ width: 6, height: 6 }} />
-              <span style={{ color: '#34d399' }}>API Connected</span>
+              <span style={{ color: '#34d399' }}>Local app</span>
             </span>
             <span style={{ color: 'var(--border-subtle)' }}>|</span>
-            <span>Map layers pending validation</span>
+            <span>Synthetic complaints and network</span>
             <span style={{ color: 'var(--border-subtle)' }}>|</span>
             <a
-              href="http://localhost:8000/docs"
+              href="http://127.0.0.1:8000/docs"
               target="_blank"
               rel="noreferrer"
               style={{ color: 'var(--primary)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}

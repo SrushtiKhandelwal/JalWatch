@@ -8,8 +8,8 @@ from sqlalchemy import func
 from typing import List
 
 from ..database import get_db
-from ..models import Ward, Complaint, Alert, Incident
-from ..schemas import WardResponse, WardStats
+from ..models import Ward, Locality, Complaint, Alert, Incident
+from ..schemas import WardResponse, WardStats, LocalityResponse
 
 router = APIRouter(prefix="/wards", tags=["Wards"])
 
@@ -29,6 +29,14 @@ def get_ward(ward_id: str, db: Session = Depends(get_db)):
     if not ward:
         raise HTTPException(status_code=404, detail="Ward not found")
     return ward
+
+
+@router.get("/{ward_id}/localities", response_model=List[LocalityResponse])
+def get_ward_localities(ward_id: str, db: Session = Depends(get_db)):
+    """List named localities without implying precise locality geometry."""
+    if not db.query(Ward).filter(Ward.ward_id == ward_id).first():
+        raise HTTPException(status_code=404, detail="Ward not found")
+    return db.query(Locality).filter(Locality.ward_id == ward_id).order_by(Locality.locality_name).all()
 
 
 @router.get("/{ward_id}/stats", response_model=WardStats)
@@ -96,5 +104,5 @@ def get_ward_stats(ward_id: str, db: Session = Depends(get_db)):
         active_alerts=active_alerts,
         active_incidents=active_incidents,
         avg_resolution_hours=avg_hours,
-        risk_score=0.0,  # Dynamic infrastructure risk index
+        risk_score=None,
     )

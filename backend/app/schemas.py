@@ -38,7 +38,18 @@ class WardStats(BaseModel):
     active_alerts: int
     active_incidents: int
     avg_resolution_hours: Optional[float] = None
-    risk_score: float = 0.0
+    risk_score: Optional[float] = None
+
+
+class LocalityResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    locality_id: str
+    locality_name: str
+    ward_id: str
+    representative_latitude: float
+    representative_longitude: float
+    geometry_precision: str
 
 
 # ╔═══════════════════════════════════════════════════════════╗
@@ -124,7 +135,7 @@ class AlertUpdate(BaseModel):
 
 
 class RiskSignal(BaseModel):
-    """Contract for Member 1's model output consumed by the alert evaluator."""
+    """Validated model output consumed by the alert evaluator."""
     model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
 
     ward_id: str
@@ -133,6 +144,7 @@ class RiskSignal(BaseModel):
     model_version: str = Field(min_length=1, max_length=100)
     contributing_factors: List[str] = Field(default_factory=list, max_length=20)
     generated_at: datetime
+    is_demo: bool = False
 
 
 class AlertEvaluationResponse(BaseModel):
@@ -254,22 +266,56 @@ class WardPrioritySummary(BaseModel):
     window_days: int
 
 
-# [ PREDICTION SCHEMAS: Machine Learning Inference ]
+# [ PREDICTION SCHEMAS: Synthetic-label model inference ]
 
 class PredictionRequest(BaseModel):
-    ward_id: str
-    complaint_type: Optional[str] = None
-    time_window_days: int = 7
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+
+    complaint_type: str = Field(min_length=1, max_length=80)
+    severity: Literal["low", "medium", "high", "critical"]
+    ward_id: str = Field(min_length=1, max_length=20)
+    locality_id: Optional[str] = Field(default=None, max_length=30)
 
 
 class PredictionResponse(BaseModel):
     ward_id: str
-    risk_score: float
-    risk_level: str
-    predicted_incidents: int
-    contributing_factors: List[str]
-    confidence: float
+    risk_score: float = Field(ge=0, le=1)
+    risk_level: Literal["low", "medium", "high", "critical"]
+    model_version: str
+    label_origin: str = "synthetic_heuristic"
     generated_at: datetime
+    is_demo: bool = True
+
+
+class WardRiskResponse(BaseModel):
+    ward_id: str
+    ward_name: str
+    risk_score: Optional[float] = Field(default=None, ge=0, le=1)
+    risk_level: Literal["unknown", "low", "medium", "high", "critical"]
+    complaint_count: int
+    critical_count: int
+    recent_7_day_count: int
+    baseline_weekly_count: float
+    is_anomalous: bool
+    contributing_factors: List[str]
+    model_version: str
+    data_through: Optional[datetime] = None
+    is_demo: bool = True
+
+
+class ScanRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    allow_stale_demo_data: bool = False
+
+
+class ScanResponse(BaseModel):
+    processed_wards: int
+    anomalous_wards: int
+    created_alerts: int
+    deduplicated_alerts: int
+    below_threshold: int
+    data_through: Optional[datetime] = None
+    alerts: List[AlertResponse]
 
 
 # [ GEOJSON & SPATIAL NETWORK SCHEMAS ]

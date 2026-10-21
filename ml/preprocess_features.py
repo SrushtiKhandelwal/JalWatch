@@ -1,12 +1,21 @@
-import pandas as pd
+"""Shared complaint feature extraction for training and inference."""
 
-df = pd.read_csv("data/raw/jalwatch_complaints_final_50000.csv")
+from typing import Mapping
 
-print("Dataset Shape:")
-print(df.shape)
 
-print("\nColumns:")
-print(df.columns.tolist())
+FEATURES = ("complaint_type", "severity", "ward_id", "locality_id")
+MISSING = "__missing__"
 
-print("\nFirst 5 Rows:")
-print(df.head())
+
+def complaint_features(record: Mapping[str, object]) -> dict[str, str]:
+    """Normalize the same categorical inputs in every model path.
+
+    Status is intentionally excluded: it may change after a complaint is filed
+    and would leak future response information into an intake-time prediction.
+    """
+    result = {}
+    for name in FEATURES:
+        value = record.get(name)
+        normalized = str(value).strip() if value is not None else ""
+        result[name] = normalized or MISSING
+    return result

@@ -113,7 +113,7 @@ def evaluate_risk_signal(signal: RiskSignal, db: Session = Depends(get_db)):
     existing = db.query(Alert).filter(
         Alert.ward_id == signal.ward_id,
         Alert.alert_type == "high_risk",
-        Alert.source == "ml_model",
+        Alert.source.in_(["ml_model", "demo_model"]),
         Alert.status.in_(["active", "acknowledged"]),
     ).order_by(Alert.id.desc()).first()
     if existing:
@@ -124,10 +124,14 @@ def evaluate_risk_signal(signal: RiskSignal, db: Session = Depends(get_db)):
         alert_type="high_risk",
         severity=signal.severity_prediction,
         ward_id=signal.ward_id,
-        title=f"Elevated incident risk in {ward.ward_name}",
-        description=f"Model {signal.model_version}: score {signal.risk_score:.2f}. Factors: {factors or 'not provided'}",
+        title=f"{'Demo model score' if signal.is_demo else 'Elevated incident risk'} in {ward.ward_name}",
+        description=(
+            f"{'Synthetic demonstration only. ' if signal.is_demo else ''}"
+            f"Model {signal.model_version}: score {signal.risk_score:.2f}. "
+            f"Factors: {factors or 'not provided'}"
+        ),
         risk_score=signal.risk_score,
-        source="ml_model",
+        source="demo_model" if signal.is_demo else "ml_model",
         triggered_at=now,
     )
     return AlertEvaluationResponse(alert_created=True, reason="Alert created", alert=_store_alert(db, alert))

@@ -1,10 +1,10 @@
 """
-Database Seeder: Loads real municipal data from CSVs + telemetry alerts and incidents.
+Database seeder: loads the bundled synthetic demonstration data.
 
 Usage:
     cd JalWatch
     python -m backend.app.seed            # seed once
-    python -m backend.app.seed --force     # drop all tables and reseed
+    python -m backend.app.seed --force     # destroys and recreates the configured database
 """
 
 import csv
@@ -21,7 +21,7 @@ if sys.stderr and hasattr(sys.stderr, "reconfigure"):
 
 # Fix imports when running as module
 from backend.app.database import engine, SessionLocal, Base
-from backend.app.models import Ward, Complaint, Alert, Incident, NetworkNode, NetworkPipe
+from backend.app.models import Ward, Locality, Complaint, Alert, Incident, NetworkNode, NetworkPipe
 from backend.app.config import settings
 
 
@@ -42,6 +42,7 @@ def seed_database(force: bool = False):
             return
 
         _seed_wards(db)
+        _seed_localities(db)
         _seed_network_nodes(db)
         _seed_network_pipes(db)
         _seed_complaints(db)
@@ -50,6 +51,7 @@ def seed_database(force: bool = False):
 
         print("\n🎉 Database seeding complete!")
         print(f"   Wards:         {db.query(Ward).count()}")
+        print(f"   Localities:    {db.query(Locality).count()}")
         print(f"   Network Nodes: {db.query(NetworkNode).count()} (Synthetic Preview)")
         print(f"   Network Pipes: {db.query(NetworkPipe).count()} (Synthetic Preview)")
         print(f"   Complaints:    {db.query(Complaint).count()}")
@@ -85,6 +87,30 @@ def _seed_wards(db):
 
         db.commit()
         print(f"   ✓ Loaded {count} wards")
+
+
+def _seed_localities(db):
+    """Load validated locality names with ward-level representative positions."""
+    csv_path = settings.RAW_DATA_DIR.parent / "processed" / "wards_localities_cleaned.csv"
+    if not csv_path.exists():
+        raise FileNotFoundError(f"Run the GIS preprocessing pipeline first: {csv_path}")
+    valid_wards = {ward_id for (ward_id,) in db.query(Ward.ward_id).all()}
+    localities = []
+    with csv_path.open(newline="", encoding="utf-8-sig") as source:
+        for row in csv.DictReader(source):
+            if row["ward_id"] not in valid_wards:
+                raise ValueError(f"Locality {row['locality_id']} has unknown ward {row['ward_id']}")
+            localities.append(Locality(
+                locality_id=row["locality_id"],
+                locality_name=row["locality_name"],
+                ward_id=row["ward_id"],
+                representative_latitude=float(row["latitude"]),
+                representative_longitude=float(row["longitude"]),
+                geometry_precision="ward_representative",
+            ))
+    db.add_all(localities)
+    db.commit()
+    print(f"   ✓ Loaded {len(localities)} localities (ward representative points)")
 
 
 # ── Load water network nodes from CSV ────────────────────
@@ -167,8 +193,10 @@ def _seed_complaints(db):
     csv_path = settings.RAW_DATA_DIR / "jalwatch_complaints_final_50000.csv"
     print(f"\n📋 Loading complaints from {csv_path.name}...")
 
-    # Load first 10,000 rows for fast development; change to None for all 50k
-    MAX_ROWS = 10_000
+    valid_localities = {
+        locality_id: ward_id
+        for locality_id, ward_id in db.query(Locality.locality_id, Locality.ward_id).all()
+    }
 
     with open(csv_path, "r", encoding="utf-8-sig") as f:
         reader = csv.DictReader(f)
@@ -176,8 +204,11 @@ def _seed_complaints(db):
         batch = []
 
         for row in reader:
-            if MAX_ROWS and count >= MAX_ROWS:
-                break
+            locality_id = row.get("locality_id", "").strip()
+            if locality_id and valid_localities.get(locality_id) != row["ward_id"]:
+                raise ValueError(
+                    f"Complaint {row['complaint_id']} has inconsistent ward/locality IDs"
+                )
 
             # Parse resolved_at (may be empty)
             resolved_at = None
@@ -194,7 +225,7 @@ def _seed_complaints(db):
                 complaint_type=row["complaint_type"],
                 description=row["description"],
                 ward_id=row["ward_id"],
-                locality_id=row["locality_id"],
+                locality_id=locality_id or None,
                 latitude=float(row["latitude"]),
                 longitude=float(row["longitude"]),
                 severity=row["severity"],

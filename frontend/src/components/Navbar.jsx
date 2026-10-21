@@ -17,7 +17,7 @@ export default function Navbar({ activeTab, setActiveTab, activeAlertCount, open
     { id: 'incidents', label: 'Operations', icon: ShieldAlert },
     { id: 'map', label: 'Map Preview', icon: MapPin },
     { id: 'complaints', label: 'Grievances', icon: FileText },
-    { id: 'predictions', label: 'Model Pending', icon: BrainCircuit },
+    { id: 'predictions', label: 'Demo Model', icon: BrainCircuit },
   ];
 
   return (
@@ -70,11 +70,11 @@ export default function Navbar({ activeTab, setActiveTab, activeAlertCount, open
                 color: '#38bdf8',
                 border: '1px solid rgba(14, 165, 233, 0.3)'
               }}>
-                NMC
+                DEMO
               </span>
             </div>
             <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 500 }}>
-              Nagpur Municipal Water Command
+              Nagpur water monitoring demo
             </div>
           </div>
         </div>

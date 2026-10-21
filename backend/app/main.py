@@ -28,7 +28,7 @@ app = FastAPI(
     version=settings.VERSION,
     description=(
         "JalWatch operations API for complaints, alerts, incident work orders, "
-        "and measured dashboard analytics. Model and GIS integration are separate team deliverables."
+        "measured dashboard analytics, synthetic network preview, and a demo complaint model."
     ),
 )
 

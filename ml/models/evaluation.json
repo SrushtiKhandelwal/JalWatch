@@ -1,0 +1,20 @@
+{
+  "holdout": {
+    "accuracy": 0.7825,
+    "brier_score": 0.1507,
+    "f1": 0.8483,
+    "log_loss": 0.4613,
+    "positive_rate": 0.6827,
+    "precision": 0.8096,
+    "recall": 0.8909,
+    "rows": 10000
+  },
+  "holdout_end": "2026-10-01T23:52:58+00:00",
+  "holdout_start": "2026-07-20T01:45:25+00:00",
+  "label_origin": "synthetic_heuristic",
+  "limitations": "Scores estimate synthetic heuristic labels, not verified future incidents.",
+  "model_version": "categorical-nb-v1",
+  "temperature": 1.25,
+  "trained_at": "2026-10-21T17:52:47.104869+00:00",
+  "training_rows": 40000
+}

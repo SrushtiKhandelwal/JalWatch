@@ -1,7 +1,5 @@
 # JalWatch
 
-JalWatch is a FastAPI and React prototype for municipal water complaint monitoring and incident response. The current bundled records and network layers are synthetic demonstration data.
+JalWatch is a local demonstration of water complaint monitoring, GIS network visualization, risk scoring, alerts, incident tracking, and dashboard analytics. The bundled data and model labels are synthetic.
 
-Member 3's operations workflow is implemented: administrator sign-in, manual and model-signal alert intake, incident tickets with status history, and a dashboard based on recorded data. The validated model and GIS layers are separate deliverables for Members 1 and 2.
-
-See [the integration and handoff guide](docs/member_integration_guide.md) for setup, API contracts, verification commands, and remaining deployment work.
+The three team modules are connected: data loading and map layers, complaint model and anomaly rule, and the administrator response workflow. See the [setup and integration guide](docs/member_integration_guide.md) for the short Windows setup, verification commands, API routes, and limits before any real deployment.

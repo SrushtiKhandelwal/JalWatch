@@ -65,6 +65,7 @@ export const api = {
   getWards: () => fetchJson(`${BASE_URL}/wards`),
   getWardById: (id) => fetchJson(`${BASE_URL}/wards/${id}`),
   getWardStats: (id) => fetchJson(`${BASE_URL}/wards/${id}/stats`),
+  getWardLocalities: (id) => fetchJson(`${BASE_URL}/wards/${encodeURIComponent(id)}/localities`),
   getNetworkNodes: (params = {}) => {
     const sp = new URLSearchParams();
     if (params.ward_id) sp.set('ward_id', params.ward_id);
@@ -165,4 +166,9 @@ export const api = {
   // AI/ML Predictive Risk Models
   getPredictionsRisk: () => fetchJson(`${BASE_URL}/predictions/risk`),
   getWardRiskPrediction: (wardId) => fetchJson(`${BASE_URL}/predictions/risk/${wardId}`),
+  getModelReport: () => fetchJson(`${BASE_URL}/predictions/model`),
+  getComplaintAnomalies: () => fetchJson(`${BASE_URL}/predictions/anomalies`),
+  scanPredictionAlerts: (data) => fetchJson(`${BASE_URL}/predictions/scan-alerts`, {
+    method: 'POST', body: JSON.stringify(data),
+  }),
 };

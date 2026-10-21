@@ -1,5 +1,7 @@
 # JalWatch GIS, Spatial Layers, and Geographic API Documentation
 
+> This documents the GIS source and processing workflow. For the integrated app setup and current limitations, see [the project guide](../docs/member_integration_guide.md). The network and complaint layers are synthetic demonstration data; ward and locality representative points must not be treated as verified boundaries or precise locality locations.
+
 **Owner:** Member 2 (Datasets, Data Validation, Preprocessing, GIS Layers, Geographic APIs, Map Integration)
 **Location:** Nagpur Municipal Corporation (NMC), Maharashtra, India
 **Spatial Reference System:** WGS84 (`EPSG:4326` / `urn:ogc:def:crs:OGC:1.3:CRS84`)
@@ -287,7 +289,7 @@ Run the test suite:
 ```powershell
 python -m unittest discover -s tests -v
 ```
-All 20 tests verify:
+The test suite verifies:
 - Coordinate bounds validation and inverted lat/lon detection.
 - Detection of external PDF URL references vs GeoJSON polygons.
 - LineString vertex formatting and coordinate ordering `[longitude, latitude]`.

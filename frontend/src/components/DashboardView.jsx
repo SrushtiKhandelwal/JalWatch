@@ -31,6 +31,7 @@ export default function DashboardView({ onSelectWard, onNavigateTab }) {
   const [severities, setSeverities] = useState([]);
   const [trend, setTrend] = useState([]);
   const [wardPriorities, setWardPriorities] = useState([]);
+  const [modelWards, setModelWards] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -38,12 +39,13 @@ export default function DashboardView({ onSelectWard, onNavigateTab }) {
   const loadData = async () => {
     try {
       setRefreshing(true);
-      const [sumRes, typeRes, sevRes, trendRes, wardRes] = await Promise.all([
+      const [sumRes, typeRes, sevRes, trendRes, wardRes, modelRes] = await Promise.all([
         api.getDashboardSummary(),
         api.getComplaintsByType(),
         api.getComplaintsBySeverity(),
         api.getDailyTrend(30),
         api.getWardPriorities(30),
+        api.getPredictionsRisk().catch(() => []),
       ]);
       setSummary(sumRes);
       setTypes((typeRes || []).slice(0, 6).map(t => ({
@@ -53,6 +55,7 @@ export default function DashboardView({ onSelectWard, onNavigateTab }) {
       setSeverities(sevRes || []);
       setTrend(trendRes || []);
       setWardPriorities((wardRes || []).slice(0, 6));
+      setModelWards((modelRes || []).filter((ward) => ward.risk_score != null).slice(0, 3));
       setError('');
     } catch (err) {
       setError(err.message);
@@ -81,7 +84,7 @@ export default function DashboardView({ onSelectWard, onNavigateTab }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
         <div>
           <h1 style={{ fontSize: '1.65rem', fontWeight: 800, color: '#ffffff', letterSpacing: '-0.02em' }}>
-            Municipal Water Command Center
+            Water Monitoring Dashboard
           </h1>
           <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: 4 }}>
             Complaint, alert, and incident records across Nagpur wards.
@@ -103,6 +106,21 @@ export default function DashboardView({ onSelectWard, onNavigateTab }) {
       {summary?.latest_complaint_at && (
         <p style={{ fontSize: '0.8rem' }}>Latest complaint record: {new Date(summary.latest_complaint_at).toLocaleString()}</p>
       )}
+
+      <div className="glass-card" style={{ padding: 18, display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+        <div style={{ minWidth: 220 }}>
+          <strong style={{ color: '#fff' }}>Demo model watchlist</strong>
+          <p style={{ fontSize: '0.75rem' }}>Mean scores from synthetic complaint labels</p>
+        </div>
+        {modelWards.length ? modelWards.map((ward) => (
+          <span key={ward.ward_id} className={`badge badge-${ward.risk_level}`}>
+            {ward.ward_name}: {(ward.risk_score * 100).toFixed(1)}%
+          </span>
+        )) : <span style={{ fontSize: '0.8rem' }}>Model result unavailable</span>}
+        <button className="btn btn-secondary btn-sm" style={{ marginLeft: 'auto' }} onClick={() => onNavigateTab('predictions')}>
+          Open model details
+        </button>
+      </div>
 
       {/* 4 Clean Executive KPI Cards */}
       <div style={{
@@ -360,7 +378,7 @@ export default function DashboardView({ onSelectWard, onNavigateTab }) {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
             <div>
               <h3 style={{ fontSize: '1.05rem', color: '#ffffff' }}>Ward Complaint Priorities</h3>
-              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Last 30 days, sorted by critical reports and volume. Model risk will be added later.</p>
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Last 30 days, sorted by observed critical reports and volume.</p>
             </div>
             <button 
               onClick={() => onNavigateTab('map')} 

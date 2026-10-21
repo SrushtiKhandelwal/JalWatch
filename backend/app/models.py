@@ -75,6 +75,22 @@ class Ward(Base):
     complaints = relationship("Complaint", back_populates="ward", lazy="dynamic")
     alerts = relationship("Alert", back_populates="ward", lazy="dynamic")
     incidents = relationship("Incident", back_populates="ward", lazy="dynamic")
+    localities = relationship("Locality", back_populates="ward")
+
+
+class Locality(Base):
+    """Named locality with a ward representative point, not a locality polygon."""
+
+    __tablename__ = "localities"
+
+    locality_id = Column(String, primary_key=True)
+    locality_name = Column(String, nullable=False)
+    ward_id = Column(String, ForeignKey("wards.ward_id"), nullable=False, index=True)
+    representative_latitude = Column(Float, nullable=False)
+    representative_longitude = Column(Float, nullable=False)
+    geometry_precision = Column(String, nullable=False, default="ward_representative")
+
+    ward = relationship("Ward", back_populates="localities")
 
 
 # [ COMPLAINT: citizen grievance report ]

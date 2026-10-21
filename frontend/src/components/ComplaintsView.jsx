@@ -1,16 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  FileText, 
-  Search, 
-  Filter, 
-  ChevronLeft, 
-  ChevronRight, 
-  MapPin, 
-  Clock, 
-  AlertCircle,
-  Eye
-} from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
 import { api } from '../api';
+
+const displayDate = (value, includeTime = false) => value
+  ? (includeTime ? new Date(value).toLocaleString() : new Date(value).toLocaleDateString())
+  : 'Unknown';
 
 export default function ComplaintsView() {
   const [complaints, setComplaints] = useState([]);
@@ -80,7 +74,7 @@ export default function ComplaintsView() {
           </span>
         </div>
         <p style={{ fontSize: '0.875rem', marginTop: 4 }}>
-          Browse, filter, and audit citizen grievances sourced from the NMC water grievance database.
+          Browse and filter the bundled synthetic complaint records.
         </p>
       </div>
 
@@ -209,7 +203,7 @@ export default function ComplaintsView() {
                         {c.status}
                       </span>
                     </td>
-                    <td>{new Date(c.reported_at || c.created_at || Date.now()).toLocaleDateString()}</td>
+                    <td>{displayDate(c.reported_at || c.created_at)}</td>
                     <td>
                       <button
                         onClick={() => setInspectComplaint(c)}
@@ -313,7 +307,7 @@ export default function ComplaintsView() {
                 </div>
                 <div>
                   <span style={{ color: 'var(--text-muted)' }}>Lodged Date:</span>
-                  <div>{new Date(inspectComplaint.reported_at || inspectComplaint.created_at || Date.now()).toLocaleString()}</div>
+                  <div>{displayDate(inspectComplaint.reported_at || inspectComplaint.created_at, true)}</div>
                 </div>
               </div>
             </div>
