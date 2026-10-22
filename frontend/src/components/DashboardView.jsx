@@ -1,447 +1,165 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  AlertTriangle, 
-  Clock, 
-  Flame, 
-  TrendingUp, 
-  Droplet,
-  RefreshCw,
-  ChevronRight
-} from 'lucide-react';
-import { 
-  AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, 
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend 
-} from 'recharts';
+import React, { useEffect, useState } from 'react';
+import { ArrowUpRight, BellRing, MapPinned, MessageSquareText, RefreshCw, Wrench } from 'lucide-react';
+import { Area, AreaChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { api } from '../api';
 
-const SEVERITY_COLORS = {
-  critical: '#ef4444',
-  high: '#f59e0b',
-  medium: '#0ea5e9',
-  low: '#64748b'
-};
-
-const CATEGORY_COLORS = [
-  '#0ea5e9', '#06b6d4', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#64748b'
-];
+const formatNumber = (value) => (value ?? 0).toLocaleString();
+const formatDate = (value) => value
+  ? new Date(value).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
+  : 'No records';
+const formatChartDate = (value) => new Date(`${value}T00:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+const typeColors = ['#157b68', '#5ea995', '#d5a65b', '#c87f6d', '#9aac8f'];
 
 export default function DashboardView({ onSelectWard, onNavigateTab }) {
   const [summary, setSummary] = useState(null);
   const [types, setTypes] = useState([]);
-  const [severities, setSeverities] = useState([]);
+  const [riskWards, setRiskWards] = useState([]);
   const [trend, setTrend] = useState([]);
-  const [wardPriorities, setWardPriorities] = useState([]);
-  const [modelWards, setModelWards] = useState([]);
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState('');
 
-  const loadData = async () => {
+  const loadData = async (refresh = false) => {
+    if (refresh) setRefreshing(true);
     try {
-      setRefreshing(true);
-      const [sumRes, typeRes, sevRes, trendRes, wardRes, modelRes] = await Promise.all([
+      const [nextSummary, nextTypes, nextWards] = await Promise.all([
         api.getDashboardSummary(),
         api.getComplaintsByType(),
-        api.getComplaintsBySeverity(),
-        api.getDailyTrend(30),
-        api.getWardPriorities(30),
         api.getPredictionsRisk().catch(() => []),
       ]);
-      setSummary(sumRes);
-      setTypes((typeRes || []).slice(0, 6).map(t => ({
-        category: (t.complaint_type || t.category || '').replace(/_/g, ' '),
-        count: t.count
-      })));
-      setSeverities(sevRes || []);
-      setTrend(trendRes || []);
-      setWardPriorities((wardRes || []).slice(0, 6));
-      setModelWards((modelRes || []).filter((ward) => ward.risk_score != null).slice(0, 3));
+      setSummary(nextSummary);
+      setTypes(nextTypes || []);
+      setRiskWards((nextWards || []).filter((ward) => ward.risk_score != null).slice(0, 5));
+      const asOf = nextSummary.latest_complaint_at?.slice(0, 10);
+      const nextTrend = await api.getDailyTrend(90, asOf).catch(() => []);
+      setTrend(asOf ? nextTrend.filter((point) => point.date <= asOf).slice(-30) : nextTrend.slice(-30));
       setError('');
-    } catch (err) {
-      setError(err.message);
+    } catch (loadError) {
+      setError(loadError.message);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  useEffect(() => { loadData(); }, []);
 
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh', flexDirection: 'column', gap: 16 }}>
-        <RefreshCw size={28} className="spin" color="var(--primary)" />
-        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Loading operations data...</p>
-      </div>
-    );
-  }
+  const visibleTypes = [...types].sort((a, b) => b.count - a.count).slice(0, 5);
+  const typeTotal = visibleTypes.reduce((sum, type) => sum + type.count, 0);
+  const trendTotal = trend.reduce((sum, day) => sum + day.count, 0);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 28, paddingBottom: 40 }}>
-      {/* Top Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
+    <div className="page-stack">
+      <div className="page-header">
         <div>
-          <h1 style={{ fontSize: '1.65rem', fontWeight: 800, color: '#ffffff', letterSpacing: '-0.02em' }}>
-            Water Monitoring Dashboard
-          </h1>
-          <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: 4 }}>
-            Complaint, alert, and incident records across Nagpur wards.
-          </p>
+          <span className="eyebrow">JalWatch / Overview</span>
+          <h1>Water operations, at a glance.</h1>
+          <p>Complaints, alerts, and response work in one place.</p>
         </div>
-
-        <button 
-          onClick={loadData} 
-          disabled={refreshing}
-          className="btn btn-secondary btn-sm"
-          style={{ gap: 8 }}
-        >
-          <RefreshCw size={13} className={refreshing ? 'spin' : ''} />
-          <span>{refreshing ? 'Refreshing...' : 'Refresh Data'}</span>
+        <button className="btn btn-secondary btn-sm" type="button" onClick={() => loadData(true)} disabled={refreshing}>
+          <RefreshCw size={15} className={refreshing ? 'spin' : ''} /> Refresh
         </button>
       </div>
 
-      {error && <p role="alert" style={{ color: '#fca5a5' }}>Dashboard could not load: {error}</p>}
       {summary?.latest_complaint_at && (
-        <p style={{ fontSize: '0.8rem' }}>Latest complaint record: {new Date(summary.latest_complaint_at).toLocaleString()}</p>
+        <div className="quiet-note">Dataset through {formatDate(summary.latest_complaint_at)}</div>
       )}
+      {error && <div role="alert" className="glass-card content-card">Unable to load the overview: {error}</div>}
 
-      <div className="glass-card" style={{ padding: 18, display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-        <div style={{ minWidth: 220 }}>
-          <strong style={{ color: '#fff' }}>Demo model watchlist</strong>
-          <p style={{ fontSize: '0.75rem' }}>Mean scores from synthetic complaint labels</p>
+      <div className="metric-grid" aria-busy={loading}>
+        <div className="glass-card metric-card">
+          <div className="metric-top"><span className="metric-label">Complaints</span><span className="metric-icon"><MessageSquareText size={18} /></span></div>
+          <strong className="metric-value">{loading ? '—' : formatNumber(summary?.total_complaints)}</strong>
+          <span className="metric-subtext">{formatNumber(summary?.resolved_complaints)} resolved</span>
         </div>
-        {modelWards.length ? modelWards.map((ward) => (
-          <span key={ward.ward_id} className={`badge badge-${ward.risk_level}`}>
-            {ward.ward_name}: {(ward.risk_score * 100).toFixed(1)}%
-          </span>
-        )) : <span style={{ fontSize: '0.8rem' }}>Model result unavailable</span>}
-        <button className="btn btn-secondary btn-sm" style={{ marginLeft: 'auto' }} onClick={() => onNavigateTab('predictions')}>
-          Open model details
-        </button>
-      </div>
-
-      {/* 4 Clean Executive KPI Cards */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-        gap: 16,
-      }}>
-        {/* KPI 1 */}
-        <div className="glass-card" style={{ padding: '22px 24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <span style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.05em' }}>
-                Total Grievances
-              </span>
-              <h2 style={{ fontSize: '2.1rem', fontWeight: 800, color: '#ffffff', marginTop: 4, letterSpacing: '-0.03em' }}>
-                {summary?.total_complaints?.toLocaleString() || 0}
-              </h2>
-            </div>
-            <div style={{ padding: 10, borderRadius: 10, background: 'rgba(14, 165, 233, 0.12)', color: '#38bdf8' }}>
-              <Droplet size={18} />
-            </div>
-          </div>
-          <div style={{ marginTop: 12, fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-            <span style={{ color: '#34d399', fontWeight: 600 }}>{summary?.resolved_complaints?.toLocaleString()}</span> resolved · {summary?.in_progress_complaints?.toLocaleString()} active
-          </div>
+        <div className="glass-card metric-card">
+          <div className="metric-top"><span className="metric-label">Open alerts</span><span className="metric-icon"><BellRing size={18} /></span></div>
+          <strong className="metric-value">{loading ? '—' : formatNumber(summary?.active_alerts)}</strong>
+          <span className="metric-subtext">Waiting for review</span>
         </div>
-
-        {/* KPI 2 */}
-        <div className="glass-card" style={{ padding: '22px 24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <span style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.05em' }}>
-                Active Warnings
-              </span>
-              <h2 style={{ fontSize: '2.1rem', fontWeight: 800, color: '#f87171', marginTop: 4, letterSpacing: '-0.03em' }}>
-                {summary?.active_alerts || 0}
-              </h2>
-            </div>
-            <div style={{ padding: 10, borderRadius: 10, background: 'rgba(239, 68, 68, 0.12)', color: '#f87171' }}>
-              <AlertTriangle size={18} />
-            </div>
-          </div>
-          <div style={{ marginTop: 12, fontSize: '0.78rem', display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ color: '#ef4444', fontWeight: 600 }}>{summary?.critical_alerts || 0} critical priority</span>
-            <span 
-              onClick={() => onNavigateTab('alerts')} 
-              style={{ color: 'var(--primary)', cursor: 'pointer', fontWeight: 600 }}
-            >
-              View Feed
-            </span>
-          </div>
-        </div>
-
-        {/* KPI 3 */}
-        <div className="glass-card" style={{ padding: '22px 24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <span style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.05em' }}>
-                Active Incidents
-              </span>
-              <h2 style={{ fontSize: '2.1rem', fontWeight: 800, color: '#fbbf24', marginTop: 4, letterSpacing: '-0.03em' }}>
-                {summary?.open_incidents || 0}
-              </h2>
-            </div>
-            <div style={{ padding: 10, borderRadius: 10, background: 'rgba(245, 158, 11, 0.12)', color: '#fbbf24' }}>
-              <Flame size={18} />
-            </div>
-          </div>
-          <div style={{ marginTop: 12, fontSize: '0.78rem', display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ color: 'var(--text-secondary)' }}>Work orders awaiting resolution</span>
-            <span 
-              onClick={() => onNavigateTab('incidents')} 
-              style={{ color: 'var(--primary)', cursor: 'pointer', fontWeight: 600 }}
-            >
-              Work Orders
-            </span>
-          </div>
-        </div>
-
-        {/* KPI 4 */}
-        <div className="glass-card" style={{ padding: '22px 24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <span style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.05em' }}>
-                Average Resolution Time
-              </span>
-              <h2 style={{ fontSize: '2.1rem', fontWeight: 800, color: '#34d399', marginTop: 4, letterSpacing: '-0.03em' }}>
-                {summary?.avg_resolution_hours != null ? `${summary.avg_resolution_hours}h` : '—'}
-              </h2>
-            </div>
-            <div style={{ padding: 10, borderRadius: 10, background: 'rgba(16, 185, 129, 0.12)', color: '#34d399' }}>
-              <Clock size={18} />
-            </div>
-          </div>
-          <div style={{ marginTop: 12, fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-            Measured across resolved complaint records
-          </div>
+        <div className="glass-card metric-card">
+          <div className="metric-top"><span className="metric-label">Active incidents</span><span className="metric-icon"><Wrench size={18} /></span></div>
+          <strong className="metric-value">{loading ? '—' : formatNumber(summary?.open_incidents)}</strong>
+          <span className="metric-subtext">Response in progress</span>
         </div>
       </div>
 
-      {/* Row 1: Main Velocity Trend & Category Distribution */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(460px, 1fr))',
-        gap: 20,
-      }}>
-        {/* Trend Area Chart */}
-        <div className="glass-card" style={{ padding: 24, minHeight: 340 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-            <div>
-              <h3 style={{ fontSize: '1.05rem', color: '#ffffff' }}>Grievance Velocity (30 Days)</h3>
-              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Daily citizen reports registered across Nagpur zones</p>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', color: '#38bdf8' }}>
-              <TrendingUp size={14} />
-              <span>Complaint Records</span>
-            </div>
+      <section className="glass-card content-card trend-card" aria-label="Complaint trend">
+        <div className="section-heading">
+          <div>
+            <h2>Complaint activity</h2>
+            <p className="quiet-note">Daily reports in the last 30 days of the dataset</p>
           </div>
-
-          <div style={{ width: '100%', height: 230 }}>
-            <ResponsiveContainer>
-              <AreaChart data={trend}>
-                <defs>
-                  <linearGradient id="trendGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.4}/>
-                    <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0.0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.04)" />
-                <XAxis 
-                  dataKey="date" 
-                  stroke="var(--text-muted)" 
-                  fontSize={11}
-                  tickFormatter={(val) => val.slice(5)}
-                  axisLine={{ stroke: 'rgba(255,255,255,0.08)' }}
-                  tickLine={false}
-                />
-                <YAxis 
-                  stroke="var(--text-muted)" 
-                  fontSize={11}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#0c1322', 
-                    borderColor: 'rgba(255, 255, 255, 0.1)',
-                    borderRadius: 8,
-                    fontSize: 12,
-                    boxShadow: '0 8px 24px rgba(0,0,0,0.5)'
-                  }} 
-                />
-                <Area 
-                  type="monotone" 
-                  dataKey="count" 
-                  name="Reports" 
-                  stroke="#38bdf8" 
-                  strokeWidth={2}
-                  fillOpacity={1} 
-                  fill="url(#trendGradient)" 
-                />
+          <span className="chart-summary">{formatNumber(trendTotal)} reports</span>
+        </div>
+        {trend.length ? (
+          <div className="trend-chart" role="img" aria-label={`Daily complaint activity, ${formatNumber(trendTotal)} reports over 30 days`}>
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={trend} margin={{ top: 8, right: 8, bottom: 0, left: -24 }}>
+                <defs><linearGradient id="complaintTrendFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#157b68" stopOpacity={0.22} /><stop offset="100%" stopColor="#157b68" stopOpacity={0.02} /></linearGradient></defs>
+                <CartesianGrid vertical={false} stroke="#e7ece8" />
+                <XAxis dataKey="date" tickFormatter={formatChartDate} tickLine={false} axisLine={false} interval={5} tick={{ fill: '#71817a', fontSize: 11 }} />
+                <YAxis tickLine={false} axisLine={false} allowDecimals={false} tick={{ fill: '#71817a', fontSize: 11 }} />
+                <Tooltip labelFormatter={formatChartDate} formatter={(value) => [formatNumber(value), 'Complaints']} contentStyle={{ border: '1px solid #e2e9e3', borderRadius: 10, boxShadow: '0 12px 32px rgba(18, 38, 31, 0.1)' }} />
+                <Area type="monotone" dataKey="count" stroke="#157b68" strokeWidth={2.5} fill="url(#complaintTrendFill)" activeDot={{ r: 5 }} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
-        </div>
+        ) : <p className="quiet-note">{loading ? 'Loading activity…' : 'No activity data available.'}</p>}
+      </section>
 
-        {/* Complaints Breakdown Bar Chart */}
-        <div className="glass-card" style={{ padding: 24, minHeight: 340 }}>
-          <div style={{ marginBottom: 20 }}>
-            <h3 style={{ fontSize: '1.05rem', color: '#ffffff' }}>Grievances by Category</h3>
-            <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Root cause distribution of citizen complaints</p>
+      <div className="overview-grid">
+        <section className="glass-card content-card" aria-label="Wards to review">
+          <div className="section-heading">
+            <div>
+              <h2>Wards to review</h2>
+              <p className="quiet-note">Ranked by model score in the latest data window</p>
+            </div>
+            <button className="text-action" type="button" onClick={() => onNavigateTab('predictions')}>All insights <ArrowUpRight size={14} /></button>
           </div>
+          <div className="ward-list">
+            {riskWards.length ? riskWards.map((ward) => (
+              <button className="ward-row" type="button" key={ward.ward_id} onClick={() => onSelectWard(ward.ward_id)}>
+                <span><strong>{ward.ward_name}</strong><small>{ward.ward_id} · {ward.complaint_count} reports</small></span>
+                <span className="row-score">{Math.round(ward.risk_score * 100)} / 100</span>
+                <ArrowUpRight size={16} aria-hidden="true" />
+              </button>
+            )) : <p className="quiet-note">{loading ? 'Loading ward scores…' : 'No ward scores available.'}</p>}
+          </div>
+        </section>
 
-          <div style={{ width: '100%', height: 230 }}>
-            <ResponsiveContainer>
-              <BarChart data={types} layout="vertical" margin={{ left: 10 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.04)" />
-                <XAxis type="number" stroke="var(--text-muted)" fontSize={11} axisLine={false} tickLine={false} />
-                <YAxis 
-                  type="category" 
-                  dataKey="category" 
-                  stroke="var(--text-secondary)" 
-                  fontSize={11}
-                  width={110}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#0c1322', 
-                    borderColor: 'rgba(255, 255, 255, 0.1)',
-                    borderRadius: 8,
-                    fontSize: 12
-                  }} 
-                />
-                <Bar dataKey="count" name="Complaints" radius={[0, 4, 4, 0]}>
-                  {types.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={CATEGORY_COLORS[index % CATEGORY_COLORS.length]} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+        <section className="glass-card content-card" aria-label="Complaint types">
+          <div className="section-heading">
+            <h2>Complaint types</h2>
+            <button className="text-action" type="button" onClick={() => onNavigateTab('complaints')}>Explore <ArrowUpRight size={14} /></button>
           </div>
-        </div>
+          {visibleTypes.length ? <div className="type-chart-layout">
+            <div className="donut-wrap" role="img" aria-label="Complaint counts by type">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={visibleTypes} dataKey="count" nameKey="complaint_type" innerRadius={64} outerRadius={88} stroke="none" paddingAngle={2}>
+                    {visibleTypes.map((type, index) => <Cell key={type.complaint_type} fill={typeColors[index % typeColors.length]} />)}
+                  </Pie>
+                  <Tooltip formatter={(value) => formatNumber(value)} contentStyle={{ border: '1px solid #e2e9e3', borderRadius: 10, boxShadow: '0 12px 32px rgba(18, 38, 31, 0.1)' }} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="donut-center"><strong>{formatNumber(typeTotal)}</strong><small>total</small></div>
+            </div>
+            <div className="type-legend">
+              {visibleTypes.map((type, index) => <div className="type-legend-row" key={type.complaint_type}>
+                <span className="type-dot" style={{ background: typeColors[index % typeColors.length] }} />
+                <span>{type.complaint_type.replaceAll('_', ' ')}</span>
+                <strong>{typeTotal ? Math.round(type.count / typeTotal * 100) : 0}%</strong>
+              </div>)}
+            </div>
+          </div> : <p className="quiet-note">{loading ? 'Loading categories…' : 'No category data available.'}</p>}
+        </section>
       </div>
 
-      {/* Row 2: Severity Triage + Observed Ward Workload */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'minmax(300px, 360px) 1fr',
-        gap: 20,
-      }}>
-        {/* Severity Donut */}
-        <div className="glass-card" style={{ padding: 24 }}>
-          <h3 style={{ fontSize: '1.05rem', color: '#ffffff', marginBottom: 2 }}>Severity Triage</h3>
-          <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: 12 }}>Priority classification</p>
-
-          <div style={{ width: '100%', height: 210 }}>
-            <ResponsiveContainer>
-              <PieChart>
-                <Pie
-                  data={severities}
-                  dataKey="count"
-                  nameKey="severity"
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={55}
-                  outerRadius={75}
-                  paddingAngle={3}
-                >
-                  {severities.map((entry, index) => (
-                    <Cell key={`sev-${index}`} fill={SEVERITY_COLORS[entry.severity] || '#64748b'} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#0c1322', 
-                    borderColor: 'rgba(255, 255, 255, 0.1)',
-                    borderRadius: 8,
-                    fontSize: 12
-                  }} 
-                />
-                <Legend 
-                  verticalAlign="bottom" 
-                  height={32} 
-                  formatter={(val) => <span style={{ color: 'var(--text-secondary)', fontSize: 11, textTransform: 'capitalize' }}>{val}</span>} 
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Priority Ward Matrix (Top 5 Focus) */}
-        <div className="glass-card" style={{ padding: 24 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <div>
-              <h3 style={{ fontSize: '1.05rem', color: '#ffffff' }}>Ward Complaint Priorities</h3>
-              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Last 30 days, sorted by observed critical reports and volume.</p>
-            </div>
-            <button 
-              onClick={() => onNavigateTab('map')} 
-              className="btn btn-secondary btn-sm"
-              style={{ fontSize: '0.75rem' }}
-            >
-              <span>Open GIS Map</span>
-              <ChevronRight size={13} />
-            </button>
-          </div>
-
-          <div className="data-table-container">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Ward Sector</th>
-                  <th>Zone</th>
-                  <th>Recent Reports</th>
-                  <th>Critical</th>
-                  <th>Active Alerts</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {wardPriorities.map((w) => {
-                  return (
-                    <tr key={w.ward_id}>
-                      <td style={{ fontWeight: 600, color: '#ffffff' }}>
-                        {w.ward_name} <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>({w.ward_id})</span>
-                      </td>
-                      <td>{w.zone_name}</td>
-                      <td>{w.recent_complaints}</td>
-                      <td>{w.critical_complaints}</td>
-                      <td>
-                        {w.active_alerts > 0 ? (
-                          <span className="badge badge-critical" style={{ fontSize: '0.68rem', padding: '2px 8px' }}>
-                            {w.active_alerts} Alerts
-                          </span>
-                        ) : (
-                          <span className="badge badge-low" style={{ fontSize: '0.68rem', padding: '2px 8px' }}>
-                            No active alerts
-                          </span>
-                        )}
-                      </td>
-                      <td>
-                        <button
-                          onClick={() => {
-                            if (onSelectWard) onSelectWard(w.ward_id);
-                            onNavigateTab('map');
-                          }}
-                          className="btn btn-secondary btn-sm"
-                          style={{ padding: '3px 8px', fontSize: '0.72rem' }}
-                        >
-                          Locate
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
+      <div className="quick-links" aria-label="Quick actions">
+        <button className="quick-link" type="button" onClick={() => onNavigateTab('alerts')}><BellRing size={16} /> Review alerts <ArrowUpRight size={14} /></button>
+        <button className="quick-link" type="button" onClick={() => onNavigateTab('incidents')}><Wrench size={16} /> Track incidents <ArrowUpRight size={14} /></button>
+        <button className="quick-link" type="button" onClick={() => onNavigateTab('map')}><MapPinned size={16} /> Open map <ArrowUpRight size={14} /></button>
       </div>
     </div>
   );

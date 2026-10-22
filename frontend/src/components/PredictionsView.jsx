@@ -1,31 +1,36 @@
 import React, { useEffect, useState } from 'react';
-import { AlertTriangle, BrainCircuit, RefreshCw } from 'lucide-react';
+import { ArrowUpRight, RefreshCw } from 'lucide-react';
 import { api } from '../api';
 
-const percent = (value) => value == null ? 'No data' : `${(value * 100).toFixed(1)}%`;
+const scoreLabel = (value) => value == null ? '—' : `${Math.round(value * 100)} / 100`;
+const formattedDate = (value) => value
+  ? new Date(value).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
+  : 'No records';
 
 export default function PredictionsView({ onAlertsChanged, onNavigateAlerts }) {
-  const [predictions, setPredictions] = useState([]);
+  const [wards, setWards] = useState([]);
   const [report, setReport] = useState(null);
   const [selectedWardId, setSelectedWardId] = useState(null);
+  const [showAll, setShowAll] = useState(false);
   const [loading, setLoading] = useState(true);
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState('');
   const [scanResult, setScanResult] = useState(null);
 
   const loadData = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const [wards, evaluation] = await Promise.all([
+      const [nextWards, nextReport] = await Promise.all([
         api.getPredictionsRisk(),
-        api.getModelReport(),
+        api.getModelReport().catch(() => null),
       ]);
-      setPredictions(wards);
-      setReport(evaluation);
-      setSelectedWardId((current) => current || wards[0]?.ward_id || null);
+      setWards(nextWards);
+      setReport(nextReport);
+      setSelectedWardId((current) => current && nextWards.some((ward) => ward.ward_id === current)
+        ? current : nextWards[0]?.ward_id ?? null);
       setError('');
-    } catch (err) {
-      setError(err.message);
+    } catch (loadError) {
+      setError(loadError.message);
     } finally {
       setLoading(false);
     }
@@ -34,127 +39,96 @@ export default function PredictionsView({ onAlertsChanged, onNavigateAlerts }) {
   useEffect(() => { loadData(); }, []);
 
   const scanAlerts = async () => {
+    setScanning(true);
+    setError('');
     try {
-      setScanning(true);
-      setError('');
       const result = await api.scanPredictionAlerts({ allow_stale_demo_data: true });
       setScanResult(result);
       onAlertsChanged?.();
-    } catch (err) {
-      setError(err.message);
+    } catch (scanError) {
+      setError(scanError.message);
     } finally {
       setScanning(false);
     }
   };
 
-  const selected = predictions.find((item) => item.ward_id === selectedWardId);
-  const anomalousCount = predictions.filter((item) => item.is_anomalous).length;
+  const selected = wards.find((ward) => ward.ward_id === selectedWardId);
+  const visibleWards = showAll ? wards : wards.slice(0, 8);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 22, paddingBottom: 40 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+    <div className="page-stack">
+      <div className="page-header">
         <div>
-          <h1 style={{ fontSize: '1.65rem', color: '#fff' }}>Complaint risk model</h1>
-          <p style={{ marginTop: 6, maxWidth: 720 }}>
-            Demonstration scores trained on synthetic heuristic labels. These are not verified
-            probabilities of future incidents or live infrastructure telemetry.
-          </p>
+          <span className="eyebrow">Analysis / Insights</span>
+          <h1>Find where attention is needed.</h1>
+          <p>Ward scores from the complaint records in this dataset.</p>
         </div>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-          <button className="btn btn-secondary" onClick={loadData} disabled={loading}>
-            <RefreshCw size={16} /> Refresh
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button className="btn btn-secondary btn-sm" type="button" onClick={loadData} disabled={loading} aria-label="Refresh insights">
+            <RefreshCw size={15} /> Refresh
           </button>
-          <button className="btn btn-primary" onClick={scanAlerts} disabled={loading || scanning || predictions.length === 0}>
-            <AlertTriangle size={16} /> {scanning ? 'Scanning…' : 'Create demo model alerts'}
+          <button className="btn btn-primary btn-sm" type="button" onClick={scanAlerts} disabled={loading || scanning || !wards.length}>
+            {scanning ? 'Creating…' : 'Create alerts from scores'}
           </button>
         </div>
       </div>
 
-      {error && <p role="alert" style={{ color: '#fca5a5' }}>{error}</p>}
+      {wards[0]?.data_through && <p className="quiet-note">Dataset through {formattedDate(wards[0].data_through)} · Scores use the latest 30 days in the dataset</p>}
+      {error && <p role="alert" style={{ color: 'var(--rose)' }}>{error}</p>}
       {scanResult && (
-        <div className="glass-card" style={{ padding: 16 }} role="status">
-          Created {scanResult.created_alerts} demo alerts; {scanResult.deduplicated_alerts} already open;
-          {' '}{scanResult.below_threshold} below threshold.
-          {' '}<button className="btn btn-secondary btn-sm" onClick={onNavigateAlerts}>View alerts</button>
+        <div className="glass-card content-card" role="status">
+          {scanResult.created_alerts} alerts created · {scanResult.deduplicated_alerts} already open
+          <button className="text-action" type="button" style={{ marginLeft: 16 }} onClick={onNavigateAlerts}>Review alerts <ArrowUpRight size={14} /></button>
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
-        <div className="glass-card" style={{ padding: 18 }}>
-          <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Held-out accuracy</div>
-          <strong style={{ fontSize: '1.5rem' }}>{percent(report?.holdout?.accuracy)}</strong>
-          <p style={{ fontSize: '0.75rem' }}>On synthetic labels, using a later time period</p>
-        </div>
-        <div className="glass-card" style={{ padding: 18 }}>
-          <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Held-out F1</div>
-          <strong style={{ fontSize: '1.5rem' }}>{percent(report?.holdout?.f1)}</strong>
-          <p style={{ fontSize: '0.75rem' }}>Model {report?.model_version || 'unavailable'}</p>
-        </div>
-        <div className="glass-card" style={{ padding: 18 }}>
-          <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Complaint spikes</div>
-          <strong style={{ fontSize: '1.5rem' }}>{anomalousCount}</strong>
-          <p style={{ fontSize: '0.75rem' }}>Seven days versus four prior weeks</p>
-        </div>
-        <div className="glass-card" style={{ padding: 18 }}>
-          <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Data through</div>
-          <strong style={{ fontSize: '1rem' }}>
-            {predictions[0]?.data_through ? new Date(predictions[0].data_through).toLocaleDateString() : 'No data'}
-          </strong>
-          <p style={{ fontSize: '0.75rem' }}>Demo scans permit stale source data explicitly</p>
-        </div>
+      <div className="insights-grid">
+        <section className="glass-card content-card" aria-label="Ward ranking">
+          <div className="section-heading"><h2>Ward ranking</h2><span className="quiet-note">Model score</span></div>
+          {loading && <p className="quiet-note">Loading scores…</p>}
+          <div className="risk-list">
+            {visibleWards.map((ward) => (
+              <button
+                className={`risk-row ${ward.ward_id === selectedWardId ? 'is-selected' : ''}`}
+                type="button"
+                key={ward.ward_id}
+                onClick={() => setSelectedWardId(ward.ward_id)}
+                aria-pressed={ward.ward_id === selectedWardId}
+              >
+                <span><strong>{ward.ward_name}</strong><small>{ward.ward_id} · {ward.complaint_count} reports{ward.is_anomalous ? ' · Count spike' : ''}</small></span>
+                <span className="row-score">{scoreLabel(ward.risk_score)}</span>
+              </button>
+            ))}
+          </div>
+          {wards.length > 8 && (
+            <button className="text-action" type="button" style={{ marginTop: 12 }} onClick={() => setShowAll((value) => !value)}>
+              {showAll ? 'Show fewer wards' : `Show all ${wards.length} wards`}
+            </button>
+          )}
+        </section>
+
+        <section className="glass-card content-card risk-detail" aria-label="Selected ward insight">
+          {selected ? <>
+            <span className="eyebrow">{selected.ward_id} / {selected.risk_level} score</span>
+            <h2>{selected.ward_name}</h2>
+            <div className="risk-score-large">{scoreLabel(selected.risk_score)}</div>
+            <p>{selected.complaint_count} complaints in the selected data window, including {selected.critical_count} marked critical.</p>
+            {selected.is_anomalous && <p style={{ color: 'var(--amber)', marginTop: 8 }}>The latest seven-day complaint count is above its previous weekly average.</p>}
+            <div style={{ marginTop: 28, borderTop: '1px solid var(--border-subtle)', paddingTop: 20 }}>
+              <h3 style={{ fontSize: '0.92rem' }}>What contributes to this view</h3>
+              <ul className="risk-factors">{selected.contributing_factors.map((factor) => <li key={factor}>{factor}</li>)}</ul>
+            </div>
+          </> : <p className="quiet-note">Select a ward to see its details.</p>}
+        </section>
       </div>
 
-      {loading ? <p>Loading model results…</p> : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(290px, 390px) minmax(300px, 1fr)', gap: 18 }}>
-          <div className="glass-card" style={{ padding: 20 }}>
-            <h2 style={{ fontSize: '1rem', marginBottom: 6 }}>Ward ranking</h2>
-            <p style={{ fontSize: '0.8rem', marginBottom: 16 }}>
-              Mean model score for complaints in the latest 30 data days
-            </p>
-            <div style={{ maxHeight: 500, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {predictions.map((ward) => (
-                <button key={ward.ward_id} className="btn btn-secondary"
-                  onClick={() => setSelectedWardId(ward.ward_id)}
-                  style={{ width: '100%', justifyContent: 'space-between', textAlign: 'left',
-                    borderColor: selectedWardId === ward.ward_id ? 'var(--primary)' : undefined }}>
-                  <span>{ward.ward_name} <small>({ward.ward_id})</small></span>
-                  <span>{percent(ward.risk_score)} {ward.is_anomalous ? '⚠' : ''}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-          {selected && (
-            <div className="glass-card" style={{ padding: 24 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-                <BrainCircuit size={20} color="var(--primary)" />
-                <h2 style={{ fontSize: '1.15rem' }}>{selected.ward_name}</h2>
-                <span className={`badge badge-${selected.risk_level === 'unknown' ? 'low' : selected.risk_level}`}>
-                  {selected.risk_level}
-                </span>
-              </div>
-              <p style={{ fontSize: '1.35rem', fontWeight: 700, marginBottom: 16 }}>
-                Mean score: {percent(selected.risk_score)}
-              </p>
-              <p>{selected.complaint_count} recent complaints, including {selected.critical_count} marked critical.</p>
-              <p style={{ marginTop: 8 }}>
-                Latest seven days: {selected.recent_7_day_count}; prior weekly average: {selected.baseline_weekly_count}.
-              </p>
-              {selected.is_anomalous && (
-                <p role="status" style={{ color: '#fbbf24', marginTop: 10 }}>
-                  An unusual complaint count was detected for this ward.
-                </p>
-              )}
-              <h3 style={{ fontSize: '0.9rem', marginTop: 24, marginBottom: 8 }}>Observed factors</h3>
-              <ul style={{ paddingLeft: 20, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {selected.contributing_factors.map((factor) => <li key={factor}>{factor}</li>)}
-              </ul>
-              <p style={{ fontSize: '0.75rem', marginTop: 24 }}>
-                Verify field conditions before taking action. The underlying labels and infrastructure data are synthetic.
-              </p>
-            </div>
-          )}
-        </div>
-      )}
+      <details className="model-details">
+        <summary>About these scores</summary>
+        <p style={{ marginTop: 12, maxWidth: 760 }}>
+          This model was trained on supplied synthetic labels. Scores help compare the provided records; they are not verified probabilities of future water incidents. Confirm conditions before taking action.
+        </p>
+        {report?.holdout && <p style={{ marginTop: 8 }}>Later-period holdout: {Math.round(report.holdout.accuracy * 100)}% accuracy and {Math.round(report.holdout.f1 * 100)}% F1 on those synthetic labels.</p>}
+      </details>
     </div>
   );
 }

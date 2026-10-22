@@ -53,7 +53,11 @@ export const api = {
   getDashboardSummary: () => fetchJson(`${BASE_URL}/dashboard/summary`),
   getComplaintsByType: () => fetchJson(`${BASE_URL}/dashboard/complaints-by-type`),
   getComplaintsBySeverity: () => fetchJson(`${BASE_URL}/dashboard/complaints-by-severity`),
-  getDailyTrend: (days = 30) => fetchJson(`${BASE_URL}/dashboard/daily-trend?days=${days}`),
+  getDailyTrend: (days = 30, asOf) => {
+    const params = new URLSearchParams({ days: String(days) });
+    if (asOf) params.set('as_of', asOf);
+    return fetchJson(`${BASE_URL}/dashboard/daily-trend?${params}`);
+  },
   getWardPriorities: (days = 30) => fetchJson(`${BASE_URL}/dashboard/ward-priorities?days=${days}`),
 
   // Complaints
@@ -63,6 +67,7 @@ export const api = {
 
   // Wards & Spatial GIS
   getWards: () => fetchJson(`${BASE_URL}/wards`),
+  getLocalities: () => fetchJson(`${BASE_URL}/wards/localities`),
   getWardById: (id) => fetchJson(`${BASE_URL}/wards/${id}`),
   getWardStats: (id) => fetchJson(`${BASE_URL}/wards/${id}/stats`),
   getWardLocalities: (id) => fetchJson(`${BASE_URL}/wards/${encodeURIComponent(id)}/localities`),

@@ -22,6 +22,12 @@ def get_wards(db: Session = Depends(get_db)):
     return wards
 
 
+@router.get("/localities", response_model=List[LocalityResponse])
+def get_localities(db: Session = Depends(get_db)):
+    """List locality names for display alongside complaint records."""
+    return db.query(Locality).order_by(Locality.locality_name).all()
+
+
 @router.get("/{ward_id}", response_model=WardResponse)
 def get_ward(ward_id: str, db: Session = Depends(get_db)):
     """Get a single ward by its ID (e.g. W001)."""

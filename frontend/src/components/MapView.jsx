@@ -2,13 +2,9 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, CircleMarker, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import {
-  MapPin,
-  Filter,
-  Layers,
   AlertTriangle,
   Info,
   Activity,
-  RotateCcw,
 } from 'lucide-react';
 import { api } from '../api';
 
@@ -21,12 +17,12 @@ const customWardIcon = (wardNumber, isSelected) => {
     className: 'custom-ward-pin',
     html: `
       <div style="
-        background: ${isSelected ? '#38bdf8' : '#0284c7'};
+        background: ${isSelected ? '#0e564a' : '#176e60'};
         width: 26px;
         height: 26px;
         border-radius: 50%;
         border: 2px solid #ffffff;
-        box-shadow: 0 0 ${isSelected ? '12px #38bdf8' : '6px rgba(0,0,0,0.5)'};
+        box-shadow: 0 2px 10px rgba(0,0,0,0.3);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -46,27 +42,27 @@ const customWardIcon = (wardNumber, isSelected) => {
 
 // Node colors based on infrastructure type
 const NODE_COLORS = {
-  junction: { fill: '#64748b', stroke: '#cbd5e1', label: 'Junction', radius: 4 },
-  valve: { fill: '#f59e0b', stroke: '#fde68a', label: 'Control Valve', radius: 5 },
-  pump_station: { fill: '#10b981', stroke: '#a7f3d0', label: 'Pump Station', radius: 6 },
-  tank: { fill: '#a855f7', stroke: '#e9d5ff', label: 'Overhead Tank', radius: 6 },
-  reservoir: { fill: '#2563eb', stroke: '#bfdbfe', label: 'Reservoir', radius: 7 },
+  junction: { fill: '#6b8075', stroke: '#ffffff', label: 'Junction', radius: 4 },
+  valve: { fill: '#bf8a39', stroke: '#ffffff', label: 'Control Valve', radius: 5 },
+  pump_station: { fill: '#267d63', stroke: '#ffffff', label: 'Pump Station', radius: 6 },
+  tank: { fill: '#927aa4', stroke: '#ffffff', label: 'Overhead Tank', radius: 6 },
+  reservoir: { fill: '#557f87', stroke: '#ffffff', label: 'Reservoir', radius: 7 },
 };
 
 // Complaint colors based on complaint type
 const getComplaintColor = (type) => {
   const t = (type || '').toLowerCase();
-  if (t.includes('contam') || t.includes('dirty') || t.includes('smell')) return '#ef4444'; // Red
-  if (t.includes('leak') || t.includes('burst')) return '#06b6d4'; // Cyan
-  if (t.includes('shortage') || t.includes('no_water')) return '#f97316'; // Orange
-  if (t.includes('pressure')) return '#eab308'; // Yellow
-  return '#a855f7'; // Purple fallback
+  if (t.includes('contam') || t.includes('dirty') || t.includes('smell')) return '#c36058';
+  if (t.includes('leak') || t.includes('burst')) return '#2e8c7d';
+  if (t.includes('shortage') || t.includes('no_water')) return '#c58b48';
+  if (t.includes('pressure')) return '#9aa05a';
+  return '#927aa4';
 };
 
 // Pipe colors based on valve status
 const getPipeColor = (valveStatus) => {
-  if (valveStatus === 'closed') return '#ef4444'; // Red for closed valve
-  return '#06b6d4'; // Cyan for flowing pipe
+  if (valveStatus === 'closed') return '#bd6057';
+  return '#258575';
 };
 
 function ChangeMapView({ coords, zoom }) {
@@ -91,19 +87,19 @@ export default function MapView({ selectedWardId: initialWardId }) {
   // Layer visibility toggles
   const [showWards, setShowWards] = useState(true);
   const [showComplaints, setShowComplaints] = useState(true);
-  const [showNodes, setShowNodes] = useState(true);
-  const [showPipes, setShowPipes] = useState(true);
+  const [showNodes, setShowNodes] = useState(false);
+  const [showPipes, setShowPipes] = useState(false);
 
   // Filters & selection
   const [selectedWardId, setSelectedWardId] = useState(initialWardId || '');
   const [complaintType, setComplaintType] = useState('');
-  const [complaintLimit, setComplaintLimit] = useState(250);
+  const complaintLimit = 100;
   const [selectedFeature, setSelectedFeature] = useState(null);
 
   // UI state
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [legendOpen, setLegendOpen] = useState(true);
+  const [legendOpen, setLegendOpen] = useState(false);
 
   // Sync prop changes to state
   useEffect(() => {
@@ -186,28 +182,19 @@ export default function MapView({ selectedWardId: initialWardId }) {
   }, [activeWard]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingBottom: 40 }}>
+    <div className="page-stack">
       {/* Header and Controls */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#ffffff' }}>
-              GIS Water Network & Complaint Map
-            </h1>
-            <span className="badge badge-medium" style={{ textTransform: 'none' }}>
-              Nagpur Demo Spatial View
-            </span>
-          </div>
-          <p style={{ fontSize: '0.875rem', marginTop: 4, color: 'var(--text-secondary)' }}>
-            Integrated geospatial layers: 38 municipal ward centers, citizen grievances, and preview water network distribution infrastructure.
-          </p>
+          <span className="eyebrow">Explore / Map</span>
+          <h1>Explore the water network.</h1>
+          <p>Wards, complaints, pipes, and nodes across Nagpur.</p>
         </div>
 
         {/* Action Controls & Filters */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           {/* Ward filter */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <MapPin size={14} style={{ color: 'var(--primary)' }} />
             <select
               value={selectedWardId}
               onChange={(e) => setSelectedWardId(e.target.value)}
@@ -215,7 +202,7 @@ export default function MapView({ selectedWardId: initialWardId }) {
               aria-label="Filter by Ward"
               style={{ minWidth: 160 }}
             >
-              <option value="">All 38 Wards</option>
+              <option value="">All wards</option>
               {wards.map((w) => (
                 <option key={w.ward_id} value={w.ward_id}>
                   {w.ward_id}: {w.ward_name} ({w.zone_name})
@@ -226,35 +213,18 @@ export default function MapView({ selectedWardId: initialWardId }) {
 
           {/* Complaint category filter */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <Filter size={14} style={{ color: 'var(--text-muted)' }} />
             <select
               value={complaintType}
               onChange={(e) => setComplaintType(e.target.value)}
               className="select"
               aria-label="Filter Complaint Type"
             >
-              <option value="">All Complaint Types</option>
+              <option value="">All complaint types</option>
               <option value="leakage">Leakage</option>
               <option value="water_shortage">Water Shortage</option>
               <option value="low_pressure">Low Pressure</option>
               <option value="dirty_water">Dirty Water</option>
               <option value="bad_smell">Bad Smell</option>
-            </select>
-          </div>
-
-          {/* Sample Limit */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Pins:</span>
-            <select
-              value={complaintLimit}
-              onChange={(e) => setComplaintLimit(Number(e.target.value))}
-              className="select"
-              aria-label="Complaint pin sample size"
-              style={{ width: 85 }}
-            >
-              <option value={100}>100</option>
-              <option value={250}>250</option>
-              <option value={500}>500</option>
             </select>
           </div>
 
@@ -266,8 +236,7 @@ export default function MapView({ selectedWardId: initialWardId }) {
               style={{ padding: '6px 12px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: 6 }}
               title="Reset all spatial filters"
             >
-              <RotateCcw size={13} />
-              <span>Reset</span>
+              <span>Clear filters</span>
             </button>
           )}
         </div>
@@ -280,18 +249,13 @@ export default function MapView({ selectedWardId: initialWardId }) {
         justifyContent: 'space-between',
         flexWrap: 'wrap',
         gap: 12,
-        background: 'rgba(12, 19, 34, 0.85)',
+        background: 'var(--bg-surface)',
         border: '1px solid var(--border-subtle)',
         borderRadius: 'var(--radius-md)',
         padding: '10px 16px',
         fontSize: '0.85rem',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, color: '#ffffff' }}>
-            <Layers size={16} style={{ color: 'var(--primary)' }} />
-            Active Layers:
-          </span>
-
           {/* Wards Toggle */}
           <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', userSelect: 'none' }}>
             <input
@@ -300,8 +264,8 @@ export default function MapView({ selectedWardId: initialWardId }) {
               onChange={(e) => setShowWards(e.target.checked)}
               style={{ cursor: 'pointer' }}
             />
-            <span style={{ color: showWards ? '#ffffff' : 'var(--text-muted)' }}>
-              Ward Centers ({wards.length})
+            <span style={{ color: showWards ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+              Wards
             </span>
           </label>
 
@@ -313,8 +277,8 @@ export default function MapView({ selectedWardId: initialWardId }) {
               onChange={(e) => setShowComplaints(e.target.checked)}
               style={{ cursor: 'pointer' }}
             />
-            <span style={{ color: showComplaints ? '#ffffff' : 'var(--text-muted)' }}>
-              Complaints ({complaints.length})
+            <span style={{ color: showComplaints ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+              Complaints
             </span>
           </label>
 
@@ -326,11 +290,8 @@ export default function MapView({ selectedWardId: initialWardId }) {
               onChange={(e) => setShowPipes(e.target.checked)}
               style={{ cursor: 'pointer' }}
             />
-            <span style={{ color: showPipes ? '#38bdf8' : 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
-              Distribution Pipes ({pipes.length})
-              <span style={{ fontSize: '0.7rem', padding: '1px 5px', borderRadius: 4, background: 'rgba(14, 165, 233, 0.2)', color: '#38bdf8' }}>
-                DEMO
-              </span>
+            <span style={{ color: showPipes ? 'var(--primary)' : 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
+              Pipes
             </span>
           </label>
 
@@ -342,11 +303,8 @@ export default function MapView({ selectedWardId: initialWardId }) {
               onChange={(e) => setShowNodes(e.target.checked)}
               style={{ cursor: 'pointer' }}
             />
-            <span style={{ color: showNodes ? '#34d399' : 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
-              Network Nodes ({nodes.length})
-              <span style={{ fontSize: '0.7rem', padding: '1px 5px', borderRadius: 4, background: 'rgba(16, 185, 129, 0.2)', color: '#34d399' }}>
-                DEMO
-              </span>
+            <span style={{ color: showNodes ? 'var(--primary)' : 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
+              Nodes
             </span>
           </label>
         </div>
@@ -359,7 +317,7 @@ export default function MapView({ selectedWardId: initialWardId }) {
             </span>
           ) : (
             <span>
-              Rendering <strong>{complaints.length}</strong> of <strong>{totalComplaintsCount.toLocaleString()}</strong> complaints
+              {showComplaints ? <>Showing <strong>{complaints.length}</strong> of <strong>{totalComplaintsCount.toLocaleString()}</strong> complaints</> : 'Complaints hidden'}
               {selectedWardId && ` in ${selectedWardId}`}
             </span>
           )}
@@ -369,11 +327,11 @@ export default function MapView({ selectedWardId: initialWardId }) {
       {/* Error Banner */}
       {error && (
         <div style={{
-          background: 'rgba(239, 68, 68, 0.15)',
-          border: '1px solid rgba(239, 68, 68, 0.4)',
+          background: 'var(--rose-bg)',
+          border: '1px solid #f1d0ce',
           borderRadius: 'var(--radius-md)',
           padding: '10px 16px',
-          color: '#fca5a5',
+          color: 'var(--rose)',
           fontSize: '0.85rem',
           display: 'flex',
           alignItems: 'center',
@@ -388,30 +346,24 @@ export default function MapView({ selectedWardId: initialWardId }) {
       )}
 
       {/* Main Map Box & Side Details Panel */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: selectedFeature ? '1fr 350px' : '1fr',
-        gap: 16,
-        height: '72vh',
-        minHeight: 560,
-      }}>
+      <div className={`map-layout ${selectedFeature ? 'has-selection' : ''}`}>
         {/* Leaflet Map Canvas */}
         <div className="glass-card" style={{ overflow: 'hidden', position: 'relative', height: '100%', borderRadius: 'var(--radius-lg)' }}>
           <MapContainer
             center={mapCenter}
             zoom={mapZoom}
-            style={{ width: '100%', height: '100%', background: '#0a0f1d' }}
+            style={{ width: '100%', height: '100%', background: '#edf1e9' }}
           >
             <ChangeMapView coords={mapCenter} zoom={mapZoom} />
 
-            {/* Dark Gray Base Tiles */}
+            {/* Light gray base tiles */}
             <TileLayer
               attribution='&copy; <a href="https://www.esri.com/">Esri</a>, HERE, Garmin, OpenStreetMap contributors'
-              url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}"
+              url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}"
               maxZoom={16}
             />
 
-            {/* 1. Water Network Distribution Pipes (Synthetic Demo) */}
+            {/* 1. Water network distribution pipes */}
             {showPipes && pipes.map((pipe) => {
               const geom = pipe.geometry;
               if (!geom || geom.type !== 'LineString' || !geom.coordinates) return null;
@@ -437,12 +389,7 @@ export default function MapView({ selectedWardId: initialWardId }) {
                 >
                   <Popup>
                     <div style={{ color: '#0f172a', fontSize: '0.8rem', padding: 2, minWidth: 180 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                        <strong style={{ color: '#0284c7' }}>{props.pipe_id}</strong>
-                        <span style={{ fontSize: '0.65rem', background: '#e0f2fe', color: '#0369a1', padding: '1px 5px', borderRadius: 4, fontWeight: 700 }}>
-                          DEMO PIPE
-                        </span>
-                      </div>
+                      <strong style={{ color: '#0284c7' }}>{props.pipe_id}</strong>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                         <div>Ward: <strong>{props.ward_id}</strong></div>
                         <div>Material: <strong>{props.material || 'Standard'}</strong></div>
@@ -452,7 +399,7 @@ export default function MapView({ selectedWardId: initialWardId }) {
                         <div>Flow: <strong>{props.flow_direction || 'forward'}</strong></div>
                       </div>
                       <div style={{ marginTop: 6, fontSize: '0.68rem', color: '#64748b', fontStyle: 'italic', borderTop: '1px solid #e2e8f0', paddingTop: 4 }}>
-                        Synthetic demonstration pipe layer.
+                        Sample network record.
                       </div>
                     </div>
                   </Popup>
@@ -460,7 +407,7 @@ export default function MapView({ selectedWardId: initialWardId }) {
               );
             })}
 
-            {/* 2. Water Network Nodes (Synthetic Demo) */}
+            {/* 2. Water network nodes */}
             {showNodes && nodes.map((node) => {
               const geom = node.geometry;
               if (!geom || geom.type !== 'Point' || !geom.coordinates) return null;
@@ -486,17 +433,12 @@ export default function MapView({ selectedWardId: initialWardId }) {
                 >
                   <Popup>
                     <div style={{ color: '#0f172a', fontSize: '0.8rem', padding: 2, minWidth: 170 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                        <strong style={{ color: nodeCfg.fill }}>{props.node_id}</strong>
-                        <span style={{ fontSize: '0.65rem', background: '#f1f5f9', color: '#334155', padding: '1px 5px', borderRadius: 4, fontWeight: 700 }}>
-                          DEMO NODE
-                        </span>
-                      </div>
+                      <strong style={{ color: nodeCfg.fill }}>{props.node_id}</strong>
                       <div>Type: <strong style={{ textTransform: 'capitalize' }}>{nodeCfg.label}</strong></div>
                       <div>Ward: <strong>{props.ward_id}</strong></div>
                       {props.elevation_m != null && <div>Elevation: <strong>{props.elevation_m} m</strong></div>}
                       <div style={{ marginTop: 6, fontSize: '0.68rem', color: '#64748b', fontStyle: 'italic', borderTop: '1px solid #e2e8f0', paddingTop: 4 }}>
-                        Synthetic demonstration node.
+                        Sample network record.
                       </div>
                     </div>
                   </Popup>
@@ -612,8 +554,7 @@ export default function MapView({ selectedWardId: initialWardId }) {
             bottom: 20,
             left: 20,
             zIndex: 1000,
-            background: 'rgba(8, 12, 20, 0.92)',
-            backdropFilter: 'blur(10px)',
+            background: '#ffffff',
             border: '1px solid var(--border-subtle)',
             borderRadius: 'var(--radius-md)',
             padding: '12px 16px',
@@ -623,9 +564,7 @@ export default function MapView({ selectedWardId: initialWardId }) {
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, cursor: 'pointer' }}
               onClick={() => setLegendOpen(!legendOpen)}>
-              <span style={{ fontWeight: 800, color: '#ffffff', letterSpacing: 0.5 }}>
-                SPATIAL MAP LEGEND
-              </span>
+              <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>Map key</span>
               <span style={{ fontSize: '0.7rem', color: 'var(--primary)' }}>
                 {legendOpen ? 'Hide' : 'Show'}
               </span>
@@ -640,57 +579,54 @@ export default function MapView({ selectedWardId: initialWardId }) {
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#0284c7', border: '1px solid #fff' }} />
+                      <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#176e60', border: '1px solid #fff' }} />
                       <span>Ward Centroid</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444' }} />
+                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#c36058' }} />
                       <span>Contamination</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#06b6d4' }} />
+                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#2e8c7d' }} />
                       <span>Leakage / Burst</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#f97316' }} />
+                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#c58b48' }} />
                       <span>Water Shortage</span>
                     </div>
                   </div>
                 </div>
 
-                {/* Network Infrastructure (Demo) */}
+                {/* Network infrastructure */}
                 <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 6 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
                     <span style={{ fontWeight: 700, color: 'var(--text-secondary)', fontSize: '0.7rem', textTransform: 'uppercase' }}>
                       Water Network Infrastructure
                     </span>
-                    <span style={{ fontSize: '0.62rem', background: 'rgba(14, 165, 233, 0.2)', color: '#38bdf8', padding: '1px 4px', borderRadius: 3, fontWeight: 700 }}>
-                      DEMO
-                    </span>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <div style={{ width: 14, height: 3, background: '#06b6d4', borderRadius: 2 }} />
+                      <div style={{ width: 14, height: 3, background: '#258575', borderRadius: 2 }} />
                       <span>Pipeline (Active)</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <div style={{ width: 14, height: 3, background: '#ef4444', borderRadius: 2 }} />
+                      <div style={{ width: 14, height: 3, background: '#bd6057', borderRadius: 2 }} />
                       <span>Pipeline (Closed)</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#64748b' }} />
+                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#6b8075' }} />
                       <span>Junction</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#f59e0b' }} />
+                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#bf8a39' }} />
                       <span>Valve</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981' }} />
+                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#267d63' }} />
                       <span>Pump Station</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#a855f7' }} />
+                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#927aa4' }} />
                       <span>Overhead Tank</span>
                     </div>
                   </div>
@@ -708,10 +644,10 @@ export default function MapView({ selectedWardId: initialWardId }) {
                 <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase' }}>
                   {selectedFeature.type === 'ward' && 'Municipal Ward'}
                   {selectedFeature.type === 'complaint' && 'Citizen Grievance'}
-                  {selectedFeature.type === 'node' && 'Network Node (Demo)'}
-                  {selectedFeature.type === 'pipe' && 'Distribution Pipe (Demo)'}
+                  {selectedFeature.type === 'node' && 'Network Node'}
+                  {selectedFeature.type === 'pipe' && 'Distribution Pipe'}
                 </span>
-                <h3 style={{ fontSize: '1.25rem', color: '#ffffff', marginTop: 2 }}>
+                <h3 style={{ fontSize: '1.25rem', color: 'var(--text-primary)', marginTop: 2 }}>
                   {selectedFeature.type === 'ward' && selectedFeature.data.ward_name}
                   {selectedFeature.type === 'complaint' && (selectedFeature.data.complaint_type || 'Grievance').replace(/_/g, ' ')}
                   {selectedFeature.type === 'node' && selectedFeature.data.node_id}
@@ -732,15 +668,15 @@ export default function MapView({ selectedWardId: initialWardId }) {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: '0.85rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 6 }}>
                   <span style={{ color: 'var(--text-muted)' }}>Ward ID</span>
-                  <span style={{ fontWeight: 600, color: '#ffffff' }}>{selectedFeature.data.ward_id}</span>
+                  <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{selectedFeature.data.ward_id}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 6 }}>
                   <span style={{ color: 'var(--text-muted)' }}>Administrative Zone</span>
-                  <span style={{ fontWeight: 600, color: '#ffffff' }}>{selectedFeature.data.zone_name} ({selectedFeature.data.zone_id})</span>
+                  <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{selectedFeature.data.zone_name} ({selectedFeature.data.zone_id})</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 6 }}>
                   <span style={{ color: 'var(--text-muted)' }}>Localities Count</span>
-                  <span style={{ fontWeight: 600, color: '#ffffff' }}>{selectedFeature.data.locality_count} Areas</span>
+                  <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{selectedFeature.data.locality_count} Areas</span>
                 </div>
                 <div>
                   <strong>Named localities</strong>
@@ -763,12 +699,12 @@ export default function MapView({ selectedWardId: initialWardId }) {
                 </div>
 
                 <div style={{
-                  background: 'rgba(14, 165, 233, 0.08)',
-                  border: '1px solid rgba(14, 165, 233, 0.25)',
+                  background: 'var(--emerald-bg)',
+                  border: '1px solid #cfe9d7',
                   borderRadius: 'var(--radius-md)',
                   padding: 12,
                   fontSize: '0.8rem',
-                  color: '#38bdf8',
+                  color: 'var(--primary)',
                   marginTop: 6,
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, marginBottom: 4 }}>
@@ -788,15 +724,15 @@ export default function MapView({ selectedWardId: initialWardId }) {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: '0.85rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 6 }}>
                   <span style={{ color: 'var(--text-muted)' }}>Complaint ID</span>
-                  <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: '#ffffff' }}>{selectedFeature.data.complaint_id}</span>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--text-primary)' }}>{selectedFeature.data.complaint_id}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 6 }}>
                   <span style={{ color: 'var(--text-muted)' }}>Ward ID</span>
-                  <span style={{ fontWeight: 600, color: '#ffffff' }}>{selectedFeature.data.ward_id}</span>
+                  <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{selectedFeature.data.ward_id}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 6 }}>
                   <span style={{ color: 'var(--text-muted)' }}>Locality</span>
-                  <span style={{ fontWeight: 600, color: '#ffffff' }}>{selectedFeature.data.locality_id || 'Nagpur Area'}</span>
+                  <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{selectedFeature.data.locality_id || 'Nagpur Area'}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 6 }}>
                   <span style={{ color: 'var(--text-muted)' }}>Severity</span>
@@ -824,11 +760,11 @@ export default function MapView({ selectedWardId: initialWardId }) {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: '0.85rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 6 }}>
                   <span style={{ color: 'var(--text-muted)' }}>Pipe ID</span>
-                  <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: '#ffffff' }}>{selectedFeature.data.pipe_id}</span>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--text-primary)' }}>{selectedFeature.data.pipe_id}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 6 }}>
                   <span style={{ color: 'var(--text-muted)' }}>Ward ID</span>
-                  <span style={{ fontWeight: 600, color: '#ffffff' }}>{selectedFeature.data.ward_id}</span>
+                  <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{selectedFeature.data.ward_id}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 6 }}>
                   <span style={{ color: 'var(--text-muted)' }}>From / To Nodes</span>
@@ -838,11 +774,11 @@ export default function MapView({ selectedWardId: initialWardId }) {
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 6 }}>
                   <span style={{ color: 'var(--text-muted)' }}>Diameter & Material</span>
-                  <span style={{ fontWeight: 600, color: '#ffffff' }}>{selectedFeature.data.diameter_mm} mm ({selectedFeature.data.material || 'Standard'})</span>
+                  <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{selectedFeature.data.diameter_mm} mm ({selectedFeature.data.material || 'Standard'})</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 6 }}>
                   <span style={{ color: 'var(--text-muted)' }}>Length</span>
-                  <span style={{ fontWeight: 600, color: '#ffffff' }}>{selectedFeature.data.length_m ? `${selectedFeature.data.length_m} m` : 'N/A'}</span>
+                  <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{selectedFeature.data.length_m ? `${selectedFeature.data.length_m} m` : 'N/A'}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 6 }}>
                   <span style={{ color: 'var(--text-muted)' }}>Valve Status</span>
@@ -852,15 +788,15 @@ export default function MapView({ selectedWardId: initialWardId }) {
                 </div>
 
                 <div style={{
-                  background: 'rgba(245, 158, 11, 0.08)',
-                  border: '1px solid rgba(245, 158, 11, 0.25)',
+                  background: 'var(--amber-bg)',
+                  border: '1px solid #eeddb8',
                   borderRadius: 'var(--radius-md)',
                   padding: 10,
                   fontSize: '0.75rem',
-                  color: '#fbbf24',
+                  color: 'var(--amber)',
                   marginTop: 6,
                 }}>
-                  Synthetic demonstration pipeline. Not live telemetry or verified municipal GIS.
+                  Sample network data; not live telemetry or verified municipal GIS.
                 </div>
               </div>
             )}
@@ -870,33 +806,33 @@ export default function MapView({ selectedWardId: initialWardId }) {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: '0.85rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 6 }}>
                   <span style={{ color: 'var(--text-muted)' }}>Node ID</span>
-                  <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: '#ffffff' }}>{selectedFeature.data.node_id}</span>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--text-primary)' }}>{selectedFeature.data.node_id}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 6 }}>
                   <span style={{ color: 'var(--text-muted)' }}>Node Type</span>
-                  <span style={{ fontWeight: 600, color: '#ffffff', textTransform: 'capitalize' }}>{selectedFeature.data.node_type}</span>
+                  <span style={{ fontWeight: 600, color: 'var(--text-primary)', textTransform: 'capitalize' }}>{selectedFeature.data.node_type}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 6 }}>
                   <span style={{ color: 'var(--text-muted)' }}>Ward ID</span>
-                  <span style={{ fontWeight: 600, color: '#ffffff' }}>{selectedFeature.data.ward_id}</span>
+                  <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{selectedFeature.data.ward_id}</span>
                 </div>
                 {selectedFeature.data.elevation_m != null && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 6 }}>
                     <span style={{ color: 'var(--text-muted)' }}>Elevation</span>
-                    <span style={{ fontWeight: 600, color: '#ffffff' }}>{selectedFeature.data.elevation_m} meters</span>
+                    <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{selectedFeature.data.elevation_m} meters</span>
                   </div>
                 )}
 
                 <div style={{
-                  background: 'rgba(245, 158, 11, 0.08)',
-                  border: '1px solid rgba(245, 158, 11, 0.25)',
+                  background: 'var(--amber-bg)',
+                  border: '1px solid #eeddb8',
                   borderRadius: 'var(--radius-md)',
                   padding: 10,
                   fontSize: '0.75rem',
-                  color: '#fbbf24',
+                  color: 'var(--amber)',
                   marginTop: 6,
                 }}>
-                  Synthetic demonstration node. Not live telemetry or verified municipal GIS.
+                  Sample network data; not live telemetry or verified municipal GIS.
                 </div>
               </div>
             )}

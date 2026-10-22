@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Eye, SlidersHorizontal } from 'lucide-react';
 import { api } from '../api';
 
 const displayDate = (value, includeTime = false) => value
@@ -13,21 +13,28 @@ export default function ComplaintsView() {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [wards, setWards] = useState([]);
+  const [localities, setLocalities] = useState({});
   const [selectedWard, setSelectedWard] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
   const [selectedSeverity, setSelectedSeverity] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [showMoreFilters, setShowMoreFilters] = useState(false);
   const [inspectComplaint, setInspectComplaint] = useState(null);
 
   const PAGE_SIZE = 25;
 
   const loadWards = async () => {
     try {
-      const data = await api.getWards();
-      setWards(data);
+      setWards(await api.getWards());
     } catch (err) {
-      console.error(err);
+      console.error('Failed to load wards:', err);
+    }
+    try {
+      const localityData = await api.getLocalities();
+      setLocalities(Object.fromEntries(localityData.map((locality) => [locality.locality_id, locality.locality_name])));
+    } catch (err) {
+      console.error('Failed to load locality names:', err);
     }
   };
 
@@ -62,31 +69,24 @@ export default function ComplaintsView() {
   }, [page, selectedWard, selectedCategory, selectedStatus, selectedSeverity, searchQuery]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 24, paddingBottom: 40 }}>
-      {/* Header */}
-      <div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#ffffff' }}>
-            Nagpur Citizen Grievance Explorer
-          </h1>
-          <span className="badge badge-low" style={{ textTransform: 'none' }}>
-            Seeded Complaint Records
-          </span>
+    <div className="page-stack">
+      <div className="page-header">
+        <div>
+          <span className="eyebrow">Explore / Complaints</span>
+          <h1>Complaints</h1>
+          <p>Browse the reported issues in the provided dataset.</p>
         </div>
-        <p style={{ fontSize: '0.875rem', marginTop: 4 }}>
-          Browse and filter the bundled synthetic complaint records.
-        </p>
+        <span className="quiet-note">{total.toLocaleString()} records</span>
       </div>
 
-      {/* Filter and Search Bar */}
-      <div className="glass-card" style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-          {/* Search box */}
+      <div className="glass-card complaint-filter-card">
+        <div className="complaint-filter-row">
           <div style={{ position: 'relative', flex: '1 1 240px' }}>
             <Search size={16} color="var(--text-muted)" style={{ position: 'absolute', left: 12, top: 12 }} />
             <input
               type="text"
-              placeholder="Search by ID or locality..."
+              placeholder="Search by ID, locality, or type..."
+              aria-label="Search complaints"
               value={searchQuery}
               onChange={(e) => { setSearchQuery(e.target.value); setPage(0); }}
               className="input"
@@ -94,29 +94,39 @@ export default function ComplaintsView() {
             />
           </div>
 
-          {/* Ward filter */}
           <select
             value={selectedWard}
             onChange={(e) => { setSelectedWard(e.target.value); setPage(0); }}
             className="select"
-            style={{ flex: '1 1 160px' }}
+            style={{ flex: '1 1 190px' }}
+            aria-label="Filter by ward"
           >
-            <option value="">All Wards (38)</option>
+            <option value="">All wards</option>
             {wards.map((w) => (
               <option key={w.ward_id} value={w.ward_id}>
-                {w.ward_name} ({w.ward_id})
+                {w.ward_name}
               </option>
             ))}
           </select>
-
-          {/* Category filter */}
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => setShowMoreFilters((current) => !current)}
+            aria-expanded={showMoreFilters}
+          >
+            <SlidersHorizontal size={16} />
+            <span>More filters{[selectedCategory, selectedStatus, selectedSeverity].filter(Boolean).length > 0 ? ` (${[selectedCategory, selectedStatus, selectedSeverity].filter(Boolean).length})` : ''}</span>
+          </button>
+        </div>
+        {showMoreFilters && <div className="complaint-filter-row">
           <select
             value={selectedCategory}
             onChange={(e) => { setSelectedCategory(e.target.value); setPage(0); }}
             className="select"
             style={{ flex: '1 1 160px' }}
+            aria-label="Filter by complaint type"
           >
-            <option value="">All Categories</option>
+            <option value="">All types</option>
             <option value="low_pressure">Low Pressure</option>
             <option value="dirty_water">Dirty Water</option>
             <option value="leakage">Leakage</option>
@@ -124,49 +134,52 @@ export default function ComplaintsView() {
             <option value="bad_smell">Bad Smell</option>
           </select>
 
-          {/* Status filter */}
           <select
             value={selectedStatus}
             onChange={(e) => { setSelectedStatus(e.target.value); setPage(0); }}
             className="select"
-            style={{ flex: '0 1 140px' }}
+            style={{ flex: '1 1 140px' }}
+            aria-label="Filter by status"
           >
-            <option value="">All Statuses</option>
+            <option value="">All statuses</option>
             <option value="open">Open</option>
             <option value="in_progress">In Progress</option>
             <option value="resolved">Resolved</option>
             <option value="closed">Closed</option>
           </select>
 
-          {/* Severity filter */}
           <select
             value={selectedSeverity}
             onChange={(e) => { setSelectedSeverity(e.target.value); setPage(0); }}
             className="select"
-            style={{ flex: '0 1 140px' }}
+            style={{ flex: '1 1 140px' }}
+            aria-label="Filter by severity"
           >
-            <option value="">All Severities</option>
+            <option value="">All severities</option>
             <option value="critical">Critical</option>
             <option value="high">High</option>
             <option value="medium">Medium</option>
             <option value="low">Low</option>
           </select>
-        </div>
+          {(selectedCategory || selectedStatus || selectedSeverity) && (
+            <button type="button" className="text-action" onClick={() => { setSelectedCategory(''); setSelectedStatus(''); setSelectedSeverity(''); setPage(0); }}>Clear</button>
+          )}
+        </div>}
       </div>
 
       {/* Complaints Table */}
       <div className="glass-card" style={{ padding: 20 }}>
         {loading ? (
           <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-muted)' }}>
-            Retrieving complaints dataset...
+            Loading complaints...
           </div>
         ) : complaints.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-muted)' }}>
-            No complaints match the selected filter criteria.
+            No complaints match these filters.
           </div>
         ) : (
           <div className="data-table-container">
-            <table className="data-table">
+            <table className="data-table complaint-table">
               <thead>
                 <tr>
                   <th>ID</th>
@@ -174,8 +187,8 @@ export default function ComplaintsView() {
                   <th>Category</th>
                   <th>Severity</th>
                   <th>Status</th>
-                  <th>Reported Date</th>
-                  <th>Action</th>
+                  <th>Reported</th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody>
@@ -184,10 +197,10 @@ export default function ComplaintsView() {
                     <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--primary)', fontWeight: 600 }}>
                       {c.complaint_id}
                     </td>
-                    <td style={{ color: '#ffffff' }}>
+                    <td style={{ color: 'var(--text-primary)' }}>
                       <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        <span>{c.locality_id || c.locality || 'Nagpur Ward Area'}</span>
-                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{c.ward_id}</span>
+                        <span>{localities[c.locality_id] || c.locality || c.locality_id || 'Ward area'}</span>
+                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{wards.find((w) => w.ward_id === c.ward_id)?.ward_name || c.ward_id}</span>
                       </div>
                     </td>
                     <td style={{ textTransform: 'capitalize' }}>
@@ -200,7 +213,7 @@ export default function ComplaintsView() {
                     </td>
                     <td>
                       <span className={`badge ${c.status === 'resolved' ? 'badge-success' : 'badge-low'}`}>
-                        {c.status}
+                        {c.status?.replaceAll('_', ' ')}
                       </span>
                     </td>
                     <td>{displayDate(c.reported_at || c.created_at)}</td>
@@ -210,8 +223,8 @@ export default function ComplaintsView() {
                         className="btn btn-secondary btn-sm"
                         style={{ padding: '4px 8px', fontSize: '0.75rem' }}
                       >
-                        <Eye size={12} />
-                        <span>Inspect</span>
+                        <Eye size={14} />
+                        <span>View</span>
                       </button>
                     </td>
                   </tr>
@@ -224,7 +237,7 @@ export default function ComplaintsView() {
         {/* Pagination controls */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 }}>
           <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-            Showing page {page + 1} of {totalPages} ({total} matching records)
+            Page {page + 1} of {totalPages}
           </span>
 
           <div style={{ display: 'flex', gap: 8 }}>
@@ -257,7 +270,7 @@ export default function ComplaintsView() {
                 <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--primary)', fontFamily: 'var(--font-mono)' }}>
                   {inspectComplaint.complaint_id}
                 </span>
-                <h3 style={{ color: '#ffffff', marginTop: 4, textTransform: 'capitalize' }}>
+                <h3 style={{ marginTop: 4, textTransform: 'capitalize' }}>
                   {(inspectComplaint.complaint_type || inspectComplaint.category || '').replace(/_/g, ' ')}
                 </h3>
               </div>
@@ -279,25 +292,25 @@ export default function ComplaintsView() {
                 </span>
               </div>
 
-              <div style={{ padding: 12, background: 'rgba(255, 255, 255, 0.03)', borderRadius: 8 }}>
+              <div style={{ padding: 12, background: 'var(--bg-surface-elevated)', borderRadius: 8 }}>
                 <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>
-                  Citizen Description / Grievance Text:
+                  Description
                 </span>
-                <p style={{ color: '#ffffff' }}>
-                  {inspectComplaint.description || 'No additional citizen remarks recorded.'}
+                <p style={{ color: 'var(--text-primary)' }}>
+                  {inspectComplaint.description || 'No description recorded.'}
                 </p>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, fontSize: '0.8rem' }}>
                 <div>
                   <span style={{ color: 'var(--text-muted)' }}>Locality:</span>
-                  <div style={{ fontWeight: 600, color: '#ffffff' }}>
-                    {inspectComplaint.locality_id || inspectComplaint.locality || 'Nagpur Ward Area'}
+                  <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                    {localities[inspectComplaint.locality_id] || inspectComplaint.locality || inspectComplaint.locality_id || 'Ward area'}
                   </div>
                 </div>
                 <div>
                   <span style={{ color: 'var(--text-muted)' }}>Ward ID:</span>
-                  <div style={{ fontWeight: 600, color: '#ffffff' }}>{inspectComplaint.ward_id}</div>
+                  <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{inspectComplaint.ward_id}</div>
                 </div>
                 <div>
                   <span style={{ color: 'var(--text-muted)' }}>Coordinates:</span>

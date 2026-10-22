@@ -1,13 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  AlertTriangle, 
-  ShieldAlert, 
   CheckCircle, 
   Radio, 
-  Filter, 
   Plus, 
-  MapPin, 
-  Clock, 
   Send
 } from 'lucide-react';
 import { api } from '../api';
@@ -24,6 +19,7 @@ export default function AlertsView({ onEscalateToIncident }) {
   const [historyAlert, setHistoryAlert] = useState(null);
   const [historyEvents, setHistoryEvents] = useState([]);
   const [historyError, setHistoryError] = useState('');
+  const [expandedAlertId, setExpandedAlertId] = useState(null);
 
   const openHistory = async (alertItem) => {
     setHistoryAlert(alertItem);
@@ -124,62 +120,49 @@ export default function AlertsView({ onEscalateToIncident }) {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 24, paddingBottom: 40 }}>
+    <div className="page-stack">
       {/* View Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
+      <div className="page-header">
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <h1 style={{ fontSize: '1.65rem', fontWeight: 800, color: '#ffffff', letterSpacing: '-0.02em' }}>
-              Early Warning & Alert Operations
-            </h1>
-            <span className="badge badge-critical" style={{ textTransform: 'none', fontSize: '0.75rem' }}>
-              Response Workflow
-            </span>
-          </div>
-          <p style={{ fontSize: '0.875rem', marginTop: 4 }}>
-            Review, acknowledge, resolve, and escalate ward alerts. Seeded examples and model scan alerts are demonstrations.
-          </p>
+          <span className="eyebrow">Operations / Alerts</span>
+          <h1>Alerts</h1>
+          <p>Review signals and decide what needs a response.</p>
         </div>
 
         <button 
           onClick={() => setIsCreatingAlert(true)}
-          className="btn btn-danger"
+          className="btn btn-primary"
         >
-          <Radio size={16} />
-          <span>Create Alert</span>
+          <Plus size={16} />
+          <span>New alert</span>
         </button>
       </div>
 
       {/* Filter Toolbar */}
-      <div className="glass-card" style={{ padding: '16px 20px', display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-          <Filter size={16} />
-          <span>Filters:</span>
-        </div>
-
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Status:</label>
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+        <div>
           <select 
             value={filterStatus} 
             onChange={(e) => { setFilterStatus(e.target.value); setPage(1); }}
             className="select"
+            aria-label="Filter alerts by status"
           >
-            <option value="">All Statuses</option>
-            <option value="active">Active (Pending)</option>
+            <option value="">All statuses</option>
+            <option value="active">Active</option>
             <option value="acknowledged">Acknowledged</option>
             <option value="resolved">Resolved</option>
             <option value="dismissed">Dismissed</option>
           </select>
         </div>
 
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Severity:</label>
+        <div>
           <select 
             value={filterSeverity} 
             onChange={(e) => { setFilterSeverity(e.target.value); setPage(1); }}
             className="select"
+            aria-label="Filter alerts by severity"
           >
-            <option value="">All Severities</option>
+            <option value="">All severities</option>
             <option value="critical">Critical</option>
             <option value="high">High</option>
             <option value="medium">Medium</option>
@@ -187,12 +170,10 @@ export default function AlertsView({ onEscalateToIncident }) {
           </select>
         </div>
 
-        <div style={{ marginLeft: 'auto', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-          Page {page} · Showing <strong>{alerts.length}</strong> alerts
-        </div>
+        <span className="quiet-note" style={{ marginLeft: 'auto' }}>{alerts.length} shown</span>
       </div>
 
-      {error && !isCreatingAlert && <p role="alert" style={{ color: '#fca5a5' }}>{error}</p>}
+      {error && !isCreatingAlert && <p role="alert" style={{ color: 'var(--rose)' }}>{error}</p>}
 
       {/* Alerts Stream List */}
       {loading ? (
@@ -202,80 +183,35 @@ export default function AlertsView({ onEscalateToIncident }) {
       ) : alerts.length === 0 ? (
         <div className="glass-card" style={{ textAlign: 'center', padding: '60px 20px' }}>
           <CheckCircle size={44} color="#10b981" style={{ margin: '0 auto 12px' }} />
-          <h3 style={{ color: '#ffffff' }}>No matching alerts found</h3>
+          <h3>No matching alerts found</h3>
           <p style={{ marginTop: 6 }}>No records match the selected filters.</p>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {alerts.map((alertItem) => {
-            const isCrit = alertItem.severity === 'critical';
-            const isHigh = alertItem.severity === 'high';
             const isResolved = alertItem.status === 'resolved';
             const isClosed = isResolved || alertItem.status === 'dismissed';
+            const isExpanded = expandedAlertId === alertItem.id;
 
             return (
-              <div 
-                key={alertItem.id} 
-                className="glass-card" 
-                style={{
-                  padding: '18px 24px',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  flexWrap: 'wrap',
-                  gap: 16,
-                  borderLeft: `4px solid ${
-                    isCrit ? '#ef4444' : isHigh ? '#f59e0b' : '#38bdf8'
-                  }`
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, flex: 1, minWidth: 280 }}>
-                  <div style={{
-                    width: 38,
-                    height: 38,
-                    borderRadius: 'var(--radius-md)',
-                    background: isCrit ? 'rgba(239, 68, 68, 0.15)' : 'rgba(245, 158, 11, 0.15)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: isCrit ? '#ef4444' : '#f59e0b'
-                  }}>
-                    {isCrit ? <AlertTriangle size={20} /> : <ShieldAlert size={20} />}
-                  </div>
-
+              <article key={alertItem.id} className="glass-card alert-card">
+                <div className="alert-card-summary">
                   <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 4 }}>
-                      <h4 style={{ fontSize: '1rem', color: '#ffffff', margin: 0 }}>
-                        {alertItem.title}
-                      </h4>
-                      <span className={`badge badge-${alertItem.severity}`}>
-                        {alertItem.severity}
-                      </span>
-                      <span className={`badge ${isResolved ? 'badge-success' : 'badge-low'}`}>
-                        {alertItem.status}
-                      </span>
-                    </div>
-
-                    <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: 8 }}>
-                      {alertItem.description}
-                    </p>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 16, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <MapPin size={12} />
-                        {alertItem.ward ? `${alertItem.ward.ward_name} (${alertItem.ward.zone_name})` : `Ward ${alertItem.ward_id}`}
-                      </span>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <Clock size={12} />
-                        {alertItem.triggered_at ? new Date(alertItem.triggered_at).toLocaleString() : 'Time unavailable'}
-                      </span>
-                    </div>
+                    <h2>{alertItem.title.replace(/^Demo\s+/i, '').replace(/^model/, 'Model')}</h2>
+                    <p>{alertItem.ward?.ward_name || `Ward ${Number(alertItem.ward_id?.slice(1)) || alertItem.ward_id}`} · {alertItem.triggered_at ? new Date(alertItem.triggered_at).toLocaleDateString() : 'Date unavailable'}</p>
+                  </div>
+                  <div className="alert-card-status">
+                    <span className={`badge badge-${alertItem.severity}`}>{alertItem.severity}</span>
+                    <span className={`badge ${isResolved ? 'badge-success' : 'badge-low'}`}>{alertItem.status}</span>
+                    <button type="button" className="btn btn-secondary btn-sm" onClick={() => setExpandedAlertId(isExpanded ? null : alertItem.id)} aria-expanded={isExpanded}>
+                      {isExpanded ? 'Hide details' : 'Review'}
+                    </button>
                   </div>
                 </div>
-
-                {/* Actions */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <button onClick={() => openHistory(alertItem)} className="btn btn-secondary btn-sm">History</button>
+                {isExpanded && <div className="alert-card-detail">
+                  {alertItem.description && <p>{alertItem.description}</p>}
+                  <div className="alert-card-actions">
+                    <button onClick={() => openHistory(alertItem)} className="btn btn-secondary btn-sm">History</button>
                   {alertItem.status === 'active' && (
                     <button
                       onClick={() => handleAcknowledge(alertItem.id)}
@@ -304,11 +240,12 @@ export default function AlertsView({ onEscalateToIncident }) {
                       className="btn btn-primary btn-sm"
                     >
                       <Plus size={14} />
-                      <span>Escalate to Incident</span>
+                      <span>Create incident</span>
                     </button>
                   )}
-                </div>
-              </div>
+                  </div>
+                </div>}
+              </article>
             );
           })}
         </div>
@@ -327,7 +264,7 @@ export default function AlertsView({ onEscalateToIncident }) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <Radio size={20} color="#ef4444" />
-                <h3 style={{ color: '#ffffff' }}>Create Ward Alert</h3>
+                <h3>New alert</h3>
               </div>
               <button 
                 onClick={() => setIsCreatingAlert(false)}
@@ -340,7 +277,7 @@ export default function AlertsView({ onEscalateToIncident }) {
             <form onSubmit={handleCreateAlert} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: 6 }}>
-                  Alert Headline / Trigger
+                  Title
                 </label>
                 <input
                   type="text"
@@ -404,7 +341,7 @@ export default function AlertsView({ onEscalateToIncident }) {
                 />
               </div>
 
-              {error && <p role="alert" style={{ color: '#fca5a5' }}>{error}</p>}
+              {error && <p role="alert" style={{ color: 'var(--rose)' }}>{error}</p>}
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 12 }}>
                 <button
@@ -429,7 +366,7 @@ export default function AlertsView({ onEscalateToIncident }) {
           <div className="modal-content" onClick={(event) => event.stopPropagation()}>
             <h3 style={{ marginBottom: 8 }}>Alert History</h3>
             <p style={{ marginBottom: 16 }}>{historyAlert.title}</p>
-            {historyError ? <p role="alert" style={{ color: '#fca5a5' }}>{historyError}</p> : (
+            {historyError ? <p role="alert" style={{ color: 'var(--rose)' }}>{historyError}</p> : (
               <ol style={{ paddingLeft: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {historyEvents.map((event) => (
                   <li key={event.id}>

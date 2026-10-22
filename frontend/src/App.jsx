@@ -1,7 +1,6 @@
 import React, { lazy, Suspense, useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
 import { api } from './api';
-import { Droplet, ExternalLink } from 'lucide-react';
 
 const DashboardView = lazy(() => import('./components/DashboardView'));
 const AlertsView = lazy(() => import('./components/AlertsView'));
@@ -79,17 +78,18 @@ export default function App() {
 
   if (authStatus !== 'authenticated') {
     return (
-      <main style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', padding: 24 }}>
-        <div className="glass-card" style={{ width: '100%', maxWidth: 420, padding: 32 }}>
-          <h1 style={{ marginBottom: 8 }}>JalWatch</h1>
-          <p style={{ marginBottom: 24 }}>Administrator sign in</p>
+      <main className="auth-page">
+        <div className="auth-card">
+          <div className="auth-wordmark">Jal<span>Watch</span></div>
+          <h1>Welcome back</h1>
+          <p>Sign in to your water operations workspace.</p>
           {authStatus === 'loading' ? <p>Checking session…</p> : (
-            <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <form onSubmit={handleLogin} className="auth-form">
               <label htmlFor="admin-password">Administrator password</label>
               <input id="admin-password" className="input" type="password" autoComplete="current-password"
                 value={password} onChange={(event) => setPassword(event.target.value)} required />
-              {authError && <p role="alert" style={{ color: '#fca5a5' }}>{authError}</p>}
-              <button className="btn btn-primary" type="submit" disabled={signingIn}>
+              {authError && <p role="alert" style={{ color: 'var(--rose)' }}>{authError}</p>}
+              <button className="btn btn-primary auth-submit" type="submit" disabled={signingIn}>
                 {signingIn ? 'Signing in…' : 'Sign in'}
               </button>
             </form>
@@ -100,8 +100,7 @@ export default function App() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      {/* Top Navbar */}
+    <div className="app-shell">
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -116,14 +115,7 @@ export default function App() {
         }}
       />
 
-      {/* Main Content Area */}
-      <main style={{
-        maxWidth: 1440,
-        margin: '0 auto',
-        width: '100%',
-        padding: '24px 24px 60px',
-        flex: 1
-      }}>
+      <main className="app-main">
         <Suspense fallback={<p>Loading view…</p>}>
         {activeTab === 'dashboard' && (
           <DashboardView
@@ -141,21 +133,10 @@ export default function App() {
         {activeTab === 'incidents' && (
           <IncidentsView
             revision={incidentRevision}
-            onOpenNewIncidentModal={() => {
-              setPrefillIncidentData(null);
-              setIsIncidentModalOpen(true);
-            }}
           />
         )}
 
-        {activeTab === 'map' && (
-          <>
-            <p style={{ marginBottom: 16, color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-              Demo spatial view: 38 ward representative points, synthetic complaint pins, and preview water network nodes and pipes.
-            </p>
-            <MapView selectedWardId={selectedMapWardId} />
-          </>
-        )}
+        {activeTab === 'map' && <MapView selectedWardId={selectedMapWardId} />}
 
         {activeTab === 'complaints' && (
           <ComplaintsView />
@@ -167,7 +148,6 @@ export default function App() {
         </Suspense>
       </main>
 
-      {/* New Incident / Escalation Modal */}
       {isIncidentModalOpen && <Suspense fallback={null}><NewIncidentModal
         isOpen={isIncidentModalOpen}
         onClose={() => {
@@ -181,52 +161,6 @@ export default function App() {
           setActiveTab('incidents');
         }}
       /></Suspense>}
-
-      {/* Footer */}
-      <footer style={{
-        borderTop: '1px solid var(--border-subtle)',
-        background: 'rgba(8, 12, 20, 0.95)',
-        padding: '20px 24px',
-        marginTop: 'auto',
-        fontSize: '0.8rem',
-        color: 'var(--text-muted)'
-      }}>
-        <div style={{
-          maxWidth: 1440,
-          margin: '0 auto',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: 16
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <Droplet size={16} color="var(--primary)" />
-            <span style={{ color: '#ffffff', fontWeight: 700 }}>JalWatch</span>
-            <span style={{ color: 'var(--border-subtle)' }}>|</span>
-            <span>Water complaint monitoring demonstration</span>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span className="live-pulse" style={{ width: 6, height: 6 }} />
-              <span style={{ color: '#34d399' }}>Local app</span>
-            </span>
-            <span style={{ color: 'var(--border-subtle)' }}>|</span>
-            <span>Synthetic complaints and network</span>
-            <span style={{ color: 'var(--border-subtle)' }}>|</span>
-            <a
-              href="http://127.0.0.1:8000/docs"
-              target="_blank"
-              rel="noreferrer"
-              style={{ color: 'var(--primary)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}
-            >
-              <span>API Gateway</span>
-              <ExternalLink size={12} />
-            </a>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

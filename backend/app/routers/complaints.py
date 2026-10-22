@@ -8,7 +8,7 @@ from sqlalchemy import or_
 from typing import Optional
 
 from ..database import get_db
-from ..models import Complaint
+from ..models import Complaint, Locality
 from ..schemas import ComplaintResponse, ComplaintListResponse
 
 router = APIRouter(prefix="/complaints", tags=["Complaints"])
@@ -52,6 +52,9 @@ def get_complaints(
         query = query.filter(or_(
             Complaint.complaint_id.ilike(pattern, escape="\\"),
             Complaint.locality_id.ilike(pattern, escape="\\"),
+            Complaint.locality_id.in_(
+                db.query(Locality.locality_id).filter(Locality.locality_name.ilike(pattern, escape="\\"))
+            ),
             Complaint.complaint_type.ilike(pattern, escape="\\"),
         ))
 

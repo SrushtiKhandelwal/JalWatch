@@ -81,10 +81,10 @@ export default function NewIncidentModal({ isOpen, onClose, prefillData, onIncid
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ padding: 8, borderRadius: 8, background: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24' }}>
+            <div style={{ padding: 8, borderRadius: 8, background: 'var(--amber-bg)', color: 'var(--amber)' }}>
               <ShieldAlert size={20} />
             </div>
-            <h3 style={{ color: '#ffffff', margin: 0 }}>Create Incident Response Ticket</h3>
+            <h3 style={{ margin: 0 }}>New incident</h3>
           </div>
           <button 
             onClick={onClose}
@@ -181,7 +181,7 @@ export default function NewIncidentModal({ isOpen, onClose, prefillData, onIncid
             </datalist>
           </div>
 
-          {error && <p role="alert" style={{ color: '#fca5a5' }}>{error}</p>}
+          {error && <p role="alert" style={{ color: 'var(--rose)' }}>{error}</p>}
 
           <div>
             <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: 6 }}>

@@ -1,7 +1,7 @@
 """Operational contract tests using an isolated in-memory database."""
 
 import unittest
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from fastapi import HTTPException, Request, Response
 from sqlalchemy import create_engine
@@ -11,10 +11,12 @@ from sqlalchemy.pool import StaticPool
 from backend.app.auth import LoginRequest, access_configured, login, require_session
 from backend.app.config import settings
 from backend.app.database import Base
-from backend.app.models import Alert, AlertEvent, Complaint, Incident, IncidentEvent, Ward
+from backend.app.models import Alert, AlertEvent, Complaint, Incident, IncidentEvent, Locality, Ward
 from backend.app.routers.alerts import create_alert, evaluate_risk_signal, update_alert_status
+from backend.app.routers.complaints import get_complaints
 from backend.app.routers.dashboard import get_complaint_trends, get_dashboard_summary, get_ward_priorities
 from backend.app.routers.incidents import create_incident, update_incident_status
+from backend.app.routers.wards import get_localities
 from backend.app.schemas import AlertCreate, AlertUpdate, IncidentCreate, IncidentStatusUpdate, RiskSignal
 
 
@@ -131,6 +133,32 @@ class OperationsTests(unittest.TestCase):
         self.assertEqual(priorities[0].critical_complaints, 1)
         trend = get_complaint_trends(7, self.db)
         self.assertEqual(len(trend), 7)
+        self.assertEqual(sum(day.count for day in trend), 1)
+
+    def test_complaint_search_uses_locality_name(self):
+        self.db.add(Locality(
+            locality_id="L001", locality_name="Central Market", ward_id="W001",
+            representative_latitude=21.1, representative_longitude=79.1,
+        ))
+        self.db.query(Complaint).filter_by(complaint_id="CMP000001").update({"locality_id": "L001"})
+        self.db.commit()
+
+        self.assertEqual(get_localities(self.db)[0].locality_name, "Central Market")
+        result = get_complaints(
+            ward_id=None, status=None, severity=None, complaint_type=None,
+            search="central", page=1, page_size=25, db=self.db,
+        )
+        self.assertEqual(result.total, 1)
+        self.assertEqual(result.complaints[0].complaint_id, "CMP000001")
+
+    def test_trend_can_end_on_dataset_date(self):
+        self.db.add(Complaint(
+            complaint_id="CMP-OLD", ward_id="W001", reported_at=datetime(2024, 5, 3, tzinfo=timezone.utc),
+            complaint_type="leakage", latitude=21.1, longitude=79.1, severity="low", status="open",
+        ))
+        self.db.commit()
+        trend = get_complaint_trends(7, self.db, date(2024, 5, 5))
+        self.assertEqual(trend[-1].date, "2024-05-05")
         self.assertEqual(sum(day.count for day in trend), 1)
 
 class AuthTests(unittest.TestCase):

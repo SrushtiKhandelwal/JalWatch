@@ -5,18 +5,18 @@ import {
   Users, 
   ArrowRight, 
   CheckCircle2, 
-  Plus, 
-  Filter, 
   LayoutGrid, 
   Table as TableIcon
 } from 'lucide-react';
 import { api } from '../api';
 import { CREW_TEAMS, INCIDENT_STAGES } from '../incidentConstants';
 
-export default function IncidentsView({ onOpenNewIncidentModal, revision }) {
+export default function IncidentsView({ revision }) {
   const [incidents, setIncidents] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState('kanban'); // 'kanban' or 'table'
+  const [viewMode, setViewMode] = useState(() =>
+    window.matchMedia('(max-width: 1050px)').matches ? 'kanban' : 'table'
+  );
   const [filterSeverity, setFilterSeverity] = useState('');
   const [page, setPage] = useState(1);
   const [error, setError] = useState('');
@@ -92,28 +92,20 @@ export default function IncidentsView({ onOpenNewIncidentModal, revision }) {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 24, paddingBottom: 40 }}>
+    <div className="page-stack">
       {/* View Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
+      <div className="page-header">
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <h1 style={{ fontSize: '1.65rem', fontWeight: 800, color: '#ffffff', letterSpacing: '-0.02em' }}>
-              Incident Response & Crew Dispatch
-            </h1>
-            <span className="badge badge-medium" style={{ textTransform: 'none', fontSize: '0.75rem' }}>
-              Operations Command
-            </span>
-          </div>
-          <p style={{ fontSize: '0.875rem', marginTop: 4 }}>
-            Track incident stages, crew assignments, and resolution notes. Seeded tickets are demonstrations.
-          </p>
+          <span className="eyebrow">Operations / Incidents</span>
+          <h1>Incidents</h1>
+          <p>Track assignments and resolution in one place.</p>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           {/* View mode toggle */}
           <div style={{
             display: 'flex',
-            background: 'rgba(15, 23, 42, 0.6)',
+            background: 'var(--bg-surface)',
             padding: 4,
             borderRadius: 'var(--radius-md)',
             border: '1px solid var(--border-subtle)',
@@ -121,9 +113,9 @@ export default function IncidentsView({ onOpenNewIncidentModal, revision }) {
             <button
               onClick={() => setViewMode('kanban')}
               style={{
-                background: viewMode === 'kanban' ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
+                background: viewMode === 'kanban' ? 'var(--emerald-bg)' : 'transparent',
                 border: 'none',
-                color: viewMode === 'kanban' ? '#fff' : 'var(--text-muted)',
+                color: viewMode === 'kanban' ? 'var(--primary)' : 'var(--text-muted)',
                 padding: '6px 10px',
                 borderRadius: 'var(--radius-sm)',
                 cursor: 'pointer',
@@ -139,9 +131,9 @@ export default function IncidentsView({ onOpenNewIncidentModal, revision }) {
             <button
               onClick={() => setViewMode('table')}
               style={{
-                background: viewMode === 'table' ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
+                background: viewMode === 'table' ? 'var(--emerald-bg)' : 'transparent',
                 border: 'none',
-                color: viewMode === 'table' ? '#fff' : 'var(--text-muted)',
+                color: viewMode === 'table' ? 'var(--primary)' : 'var(--text-muted)',
                 padding: '6px 10px',
                 borderRadius: 'var(--radius-sm)',
                 cursor: 'pointer',
@@ -156,38 +148,29 @@ export default function IncidentsView({ onOpenNewIncidentModal, revision }) {
             </button>
           </div>
 
-          <button onClick={onOpenNewIncidentModal} className="btn btn-primary">
-            <Plus size={16} />
-            <span>Create Incident Ticket</span>
-          </button>
         </div>
       </div>
 
       {/* Filter toolbar */}
-      <div className="glass-card" style={{ padding: '14px 20px', display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-          <Filter size={16} />
-          <span>Priority Filter:</span>
-        </div>
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
         <select
           value={filterSeverity}
           onChange={(e) => { setFilterSeverity(e.target.value); setPage(1); }}
           className="select"
+          aria-label="Filter incidents by priority"
         >
-          <option value="">All Priorities</option>
+          <option value="">All priorities</option>
           <option value="critical">Critical</option>
           <option value="high">High</option>
           <option value="medium">Medium</option>
           <option value="low">Low</option>
         </select>
 
-        <div style={{ marginLeft: 'auto', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-          Page {page} · Active on page: <strong>{incidents.filter(i => !['resolved', 'closed'].includes(i.status)).length}</strong> / Shown: {incidents.length}
-        </div>
+        <span className="quiet-note" style={{ marginLeft: 'auto' }}>{incidents.length} shown</span>
       </div>
 
       {/* Content Rendering: Kanban or Table */}
-      {error && !pendingTransition && <p role="alert" style={{ color: '#fca5a5' }}>{error}</p>}
+      {error && !pendingTransition && <p role="alert" style={{ color: 'var(--rose)' }}>{error}</p>}
       {loading ? (
         <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-muted)' }}>
           Loading incident pipeline...
@@ -206,7 +189,7 @@ export default function IncidentsView({ onOpenNewIncidentModal, revision }) {
               <div 
                 key={stage.id} 
                 style={{
-                  background: 'rgba(15, 23, 42, 0.45)',
+                  background: 'var(--bg-surface-elevated)',
                   border: '1px solid var(--border-subtle)',
                   borderRadius: 'var(--radius-lg)',
                   padding: 16,
@@ -220,14 +203,14 @@ export default function IncidentsView({ onOpenNewIncidentModal, revision }) {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 8, borderBottom: '1px solid var(--border-subtle)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <div style={{ width: 8, height: 8, borderRadius: '50%', background: stage.color }} />
-                    <span style={{ fontWeight: 700, fontSize: '0.875rem', color: '#ffffff' }}>
+                    <span style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--text-primary)' }}>
                       {stage.label}
                     </span>
                   </div>
                   <span style={{
                     fontSize: '0.75rem',
                     fontWeight: 700,
-                    background: 'rgba(255, 255, 255, 0.1)',
+                    background: 'var(--bg-surface)',
                     padding: '2px 8px',
                     borderRadius: 'var(--radius-full)',
                     color: 'var(--text-secondary)'
@@ -261,7 +244,7 @@ export default function IncidentsView({ onOpenNewIncidentModal, revision }) {
                           </span>
                         </div>
 
-                        <h4 style={{ fontSize: '0.875rem', color: '#ffffff', lineHeight: 1.3 }}>
+                        <h4 style={{ fontSize: '0.875rem', lineHeight: 1.3 }}>
                           {incident.title}
                         </h4>
 
@@ -309,7 +292,7 @@ export default function IncidentsView({ onOpenNewIncidentModal, revision }) {
         /* Table View */
         <div className="glass-card" style={{ padding: 20 }}>
           <div className="data-table-container">
-            <table className="data-table">
+            <table className="data-table incident-table">
               <thead>
                 <tr>
                   <th>Incident ID</th>
@@ -328,15 +311,15 @@ export default function IncidentsView({ onOpenNewIncidentModal, revision }) {
                     <td style={{ fontWeight: 700, color: 'var(--primary)' }}>
                       {incident.incident_id}
                     </td>
-                    <td style={{ fontWeight: 600, color: '#ffffff' }}>{incident.title}</td>
-                    <td>{incident.ward ? incident.ward.ward_name : `Ward ${incident.ward_id}`}</td>
+                    <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{incident.title}<small className="mobile-incident-id">{incident.incident_id}</small></td>
+                    <td>{incident.ward ? incident.ward.ward_name : `Ward ${Number(incident.ward_id?.slice(1)) || incident.ward_id}`}</td>
                     <td>
                       <span className={`badge badge-${incident.severity}`}>
                         {incident.severity}
                       </span>
                     </td>
                     <td>
-                      <span className="badge badge-low">{incident.status}</span>
+                      <span className="badge badge-low">{incident.status.replaceAll('_', ' ')}</span>
                     </td>
                     <td>{incident.assigned_to || 'Pending Crew'}</td>
                     <td>{new Date(incident.reported_at).toLocaleDateString()}</td>
@@ -349,7 +332,7 @@ export default function IncidentsView({ onOpenNewIncidentModal, revision }) {
                           Advance
                         </button>
                       ) : (
-                        <span style={{ color: '#34d399', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <span style={{ color: 'var(--emerald)', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: 4 }}>
                           <CheckCircle2 size={14} /> Closed
                         </span>
                       )}
@@ -402,7 +385,7 @@ export default function IncidentsView({ onOpenNewIncidentModal, revision }) {
                     placeholder="Describe the work completed and service restored" />
                 </>
               )}
-              {error && <p role="alert" style={{ color: '#fca5a5' }}>{error}</p>}
+              {error && <p role="alert" style={{ color: 'var(--rose)' }}>{error}</p>}
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
                 <button type="button" className="btn btn-secondary" disabled={savingTransition} onClick={() => setPendingTransition(null)}>Cancel</button>
                 <button type="submit" className="btn btn-primary" disabled={savingTransition}>
@@ -420,7 +403,7 @@ export default function IncidentsView({ onOpenNewIncidentModal, revision }) {
             <h3 style={{ marginBottom: 8 }}>Incident History</h3>
             <p style={{ marginBottom: 16 }}>{historyIncident.incident_id}: {historyIncident.title}</p>
             {historyLoading ? <p>Loading history…</p> : historyError ? (
-              <p role="alert" style={{ color: '#fca5a5' }}>{historyError}</p>
+              <p role="alert" style={{ color: 'var(--rose)' }}>{historyError}</p>
             ) : (
               <ol style={{ paddingLeft: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {historyEvents.map((event) => (

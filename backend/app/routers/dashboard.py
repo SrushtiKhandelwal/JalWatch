@@ -3,8 +3,8 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import case, func
-from typing import List
-from datetime import datetime, timedelta, timezone
+from typing import List, Optional
+from datetime import date, datetime, timedelta, timezone
 
 from ..database import get_db
 from ..models import Complaint, Alert, Incident, Ward
@@ -123,19 +123,22 @@ def get_complaints_by_severity(db: Session = Depends(get_db)):
 def get_complaint_trends(
     days: int = Query(90, ge=7, le=365),
     db: Session = Depends(get_db),
+    as_of: Optional[date] = None,
 ):
     """
     Daily complaint count for the last N days for trend analytics.
     Default: last 90 days.
     """
-    first_date = datetime.now(timezone.utc).date() - timedelta(days=days - 1)
+    end_date = as_of or datetime.now(timezone.utc).date()
+    first_date = end_date - timedelta(days=days - 1)
     cutoff = datetime.combine(first_date, datetime.min.time(), tzinfo=timezone.utc)
+    end_exclusive = datetime.combine(end_date + timedelta(days=1), datetime.min.time(), tzinfo=timezone.utc)
     results = (
         db.query(
             func.date(Complaint.reported_at).label("date"),
             func.count(Complaint.complaint_id).label("count"),
         )
-        .filter(Complaint.reported_at >= cutoff)
+        .filter(Complaint.reported_at >= cutoff, Complaint.reported_at < end_exclusive)
         .group_by(func.date(Complaint.reported_at))
         .order_by(func.date(Complaint.reported_at))
         .all()
