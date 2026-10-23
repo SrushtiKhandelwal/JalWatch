@@ -27,3 +27,6 @@ coverage/
 *.sqlite
 *.sqlite3
 *.db
+
+# Vercel CLI project link
+.vercel/

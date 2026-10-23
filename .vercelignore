@@ -1,0 +1,8 @@
+.env
+.env.*
+.git/
+.vercel/
+.venv/
+frontend/
+tests/
+docs/

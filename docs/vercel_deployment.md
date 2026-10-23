@@ -1,10 +1,14 @@
 # JalWatch Vercel deployment
 
-This hosts the synthetic-data demonstration as two Vercel projects connected to the same GitHub repository. The API project uses the repository root; the Vite frontend project uses `frontend/`. The database is a separate managed PostgreSQL service.
+This hosts the synthetic-data demonstration as two Vercel projects from the same repository. The API project uses the repository root; the Vite frontend project uses `frontend/`. The database is a separate managed PostgreSQL service.
+
+The current deployments are [jalwatch-api.vercel.app](https://jalwatch-api.vercel.app) and [jalwatch-web.vercel.app](https://jalwatch-web.vercel.app) in the `srushti-khandelwals-projects` Vercel team. They were deployed from the local checkout with Vercel CLI. Their Git connection is not active, so a GitHub push alone does not update them.
 
 ## 1. Prepare a database
 
 Create a PostgreSQL database through Vercel Marketplace (for example, Neon). Use a pooled connection URL for the API and keep the database in a region close to the API function. Put that URL in the backend project's `DATABASE_URL` environment variable. The app accepts `postgresql://` URLs and selects psycopg 3 automatically. Do not use the repository's SQLite setting on Vercel.
+
+The repository's `vercel.json` places the API function in Singapore (`sin1`) to match the JalWatch Neon database created there. If you choose a different database region, update that setting before deploying.
 
 Use a separate database for preview deployments if previews will accept writes. Never point untrusted previews at the production database.
 
@@ -34,6 +38,16 @@ Check `https://<api-project>.vercel.app/health` and `https://<api-project>.verce
 Import the same repository again as a second Vercel project, with **Root Directory** set to `frontend`. Choose the Vite framework preset, `npm run build`, and output directory `dist`. Set `JALWATCH_API_ORIGIN` to the backend project's stable HTTPS origin, for example `https://jalwatch-api.vercel.app`. Do not include `/api`, a path, or a trailing path segment. The value is used during deployment to generate a same-origin `/api/*` rewrite, so browser sessions remain on the frontend domain. The frontend needs no database credentials.
 
 Deploy after the API has a stable URL. A changed environment variable takes effect only on a new deployment. The Vite local development server still proxies `/api` to `127.0.0.1:8000` without this variable.
+
+For the current CLI deployment, sign in with `npx --yes vercel@65.2.0 login` once. Run `npx --yes vercel@65.2.0 deploy --prod --yes --scope srushti-khandelwals-projects` from the repository root to update the API. To update the frontend from PowerShell, run these commands from `frontend/`:
+
+```powershell
+$env:JALWATCH_API_ORIGIN = 'https://jalwatch-api.vercel.app'
+npx --yes vercel@65.2.0 deploy --prod --yes --scope srushti-khandelwals-projects
+Remove-Item Env:JALWATCH_API_ORIGIN
+```
+
+The local environment variable is needed because Vercel CLI evaluates `frontend/vercel.mjs` before uploading the project. Keep the same `JALWATCH_API_ORIGIN` value in the frontend project's Production environment variables as well. The `.vercel/` project links and local `.env` files stay outside Git and deployment uploads.
 
 ## 5. Verify the deployed demonstration
 
