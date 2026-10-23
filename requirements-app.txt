@@ -1,6 +1,2 @@
-# Local FastAPI dashboard, SQLite, model, and backend/GIS unit tests.
-# Use requirements.txt only for optional GIS preprocessing or PostgreSQL work.
-fastapi==0.143.0
-SQLAlchemy==2.1.4
-python-dotenv==1.2.4
-uvicorn==0.54.0
+# Kept for the existing local setup command.
+-r requirements.txt

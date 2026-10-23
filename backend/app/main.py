@@ -16,11 +16,8 @@ from sqlalchemy.exc import SQLAlchemyError
 from .config import settings
 from .auth import access_configured, require_session, router as auth_router
 from .citizen_auth import router as citizen_auth_router, public_router
-from .database import engine, Base
+from .database import engine
 from .routers import complaints, wards, alerts, incidents, dashboard, predictions, network, citizen, clusters, service_notices
-
-# Create database tables on startup (if they don't exist)
-Base.metadata.create_all(bind=engine)
 
 # -- FastAPI App ------------------------------------------
 
@@ -32,6 +29,7 @@ app = FastAPI(
         "measured dashboard analytics, synthetic network preview, and a demo complaint model."
     ),
 )
+
 
 # -- CORS: allow frontend dev server to call this API ----
 
@@ -93,6 +91,8 @@ def health_check():
     try:
         with engine.connect() as connection:
             connection.execute(text("SELECT 1"))
+            if connection.execute(text("SELECT 1 FROM wards LIMIT 1")).first() is None:
+                raise HTTPException(status_code=503, detail="Database has not been seeded")
     except SQLAlchemyError:
-        raise HTTPException(status_code=503, detail="Database unavailable") from None
+        raise HTTPException(status_code=503, detail="Database unavailable or not initialized") from None
     return {"status": "healthy"}

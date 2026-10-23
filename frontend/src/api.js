@@ -1,6 +1,6 @@
 /**
  * JalWatch Frontend API Client
- * Connects to the FastAPI backend via the Vite proxy (/api)
+ * Uses the Vite proxy locally and the Vercel rewrite in production.
  */
 
 const BASE_URL = '/api';

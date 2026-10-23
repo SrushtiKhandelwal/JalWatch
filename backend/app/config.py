@@ -27,7 +27,9 @@ class Settings:
 
     ADMIN_PASSWORD: str = os.getenv("JALWATCH_ADMIN_PASSWORD", "")
     SESSION_SECRET: str = os.getenv("JALWATCH_SESSION_SECRET", "")
-    COOKIE_SECURE: bool = os.getenv("JALWATCH_COOKIE_SECURE", "false").lower() == "true"
+    COOKIE_SECURE: bool = os.getenv(
+        "JALWATCH_COOKIE_SECURE", "true" if os.getenv("VERCEL") else "false"
+    ).lower() == "true"
 
     # CORS: origins allowed to call this API (frontend dev server)
     DEFAULT_CORS_ORIGINS: list = [

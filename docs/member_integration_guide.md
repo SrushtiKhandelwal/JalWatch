@@ -40,7 +40,7 @@ The checked-in model JSON is ready to use. Retraining it needs only Python's sta
 .\.venv\Scripts\python.exe -m ml.evaluate
 ```
 
-The larger `requirements.txt` is for optional GIS preprocessing and PostgreSQL work. It is not needed to run or train the local demo. Rebuild the GIS artifacts only when the source CSVs change; see [GIS README](../gis/README.md).
+The runtime dependencies are in `requirements.txt`; `requirements-app.txt` remains an alias for the existing setup command. The larger `requirements-gis.txt` is only for optional GIS preprocessing. Rebuild the GIS artifacts only when the source CSVs change; see [GIS README](../gis/README.md).
 
 ## Application flow
 
@@ -88,7 +88,7 @@ npm run lint
 
 ## Limits before real deployment
 
-The current bundle is a **local demonstration**, not a live municipal warning service. Real use requires verified incident outcome labels, fresh complaint feeds, actual ward polygons and locality geometry, a verified network, field validation of model thresholds, managed database migrations, and an institutional identity provider. The local administrator password is a single shared role, not individual staff accounts. The model metrics measure agreement with synthetic labels only. No SMS or email is sent by this application. New tables are created automatically for local use; schema changes to existing tables need a managed migration before production deployment.
+The current bundle is a **demonstration**, not a live municipal warning service. Real use requires verified incident outcome labels, fresh complaint feeds, actual ward polygons and locality geometry, a verified network, field validation of model thresholds, managed database migrations, and an institutional identity provider. The administrator password is a single shared role, not individual staff accounts. The model metrics measure agreement with synthetic labels only. No SMS or email is sent by this application. The seed command creates tables in a fresh database; schema changes to existing tables need a managed migration before production use. See the [Vercel deployment guide](vercel_deployment.md) for demo hosting.
 
 ### Related-report scaling
 
