@@ -15,6 +15,11 @@ function complaintQuery(params = {}) {
   if (params.category || params.complaint_type) searchParams.set('complaint_type', params.category || params.complaint_type);
   if (params.status) searchParams.set('status', params.status);
   if (params.severity) searchParams.set('severity', params.severity);
+  if (params.source) searchParams.set('source', params.source);
+  if (params.zone_id) searchParams.set('zone_id', params.zone_id);
+  if (params.from_date) searchParams.set('from_date', params.from_date);
+  if (params.to_date) searchParams.set('to_date', params.to_date);
+  if (params.sort) searchParams.set('sort', params.sort);
   if (params.search) searchParams.set('search', params.search);
   return `${BASE_URL}/complaints?${searchParams}`;
 }
@@ -49,6 +54,34 @@ export const api = {
     method: 'POST', body: JSON.stringify({ password }),
   }),
   logout: () => fetchJson(`${BASE_URL}/auth/logout`, { method: 'POST' }),
+  getCitizenSession: () => fetchJson(`${BASE_URL}/auth/citizen/me`),
+  citizenLogin: (email, password) => fetchJson(`${BASE_URL}/auth/citizen/login`, {
+    method: 'POST', body: JSON.stringify({ email, password }),
+  }),
+  citizenRegister: (data) => fetchJson(`${BASE_URL}/auth/citizen/register`, {
+    method: 'POST', body: JSON.stringify(data),
+  }),
+  citizenLogout: () => fetchJson(`${BASE_URL}/auth/citizen/logout`, { method: 'POST' }),
+  getPublicWards: () => fetchJson(`${BASE_URL}/public/wards`),
+  getPublicLocalities: (wardId) => fetchJson(`${BASE_URL}/public/wards/${encodeURIComponent(wardId)}/localities`),
+  updateCitizenLocation: (data) => fetchJson(`${BASE_URL}/auth/citizen/location`, {
+    method: 'PATCH', body: JSON.stringify(data),
+  }),
+  getCitizenSummary: () => fetchJson(`${BASE_URL}/citizen/summary`),
+  getMyComplaints: (page = 1) => fetchJson(`${BASE_URL}/citizen/complaints?page=${page}`),
+  getMyComplaint: (id) => fetchJson(`${BASE_URL}/citizen/complaints/${encodeURIComponent(id)}`),
+  submitCitizenComplaint: (data) => fetchJson(`${BASE_URL}/citizen/complaints`, {
+    method: 'POST', body: JSON.stringify(data),
+  }),
+  getCitizenNotices: () => fetchJson(`${BASE_URL}/citizen/notices`),
+  markCitizenNoticeRead: (id) => fetchJson(`${BASE_URL}/citizen/notices/${id}/read`, { method: 'POST' }),
+  getServiceNotices: () => fetchJson(`${BASE_URL}/service-notices`),
+  createServiceNotice: (data) => fetchJson(`${BASE_URL}/service-notices`, { method: 'POST', body: JSON.stringify(data) }),
+  editServiceNotice: (id, data) => fetchJson(`${BASE_URL}/service-notices/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  actOnServiceNotice: (id, action) => fetchJson(`${BASE_URL}/service-notices/${id}/action`, {
+    method: 'POST', body: JSON.stringify({ action }),
+  }),
+  getComplaintClusters: (days = 30, wardId) => fetchJson(`${BASE_URL}/clusters?${new URLSearchParams({ days: String(days), ...(wardId ? { ward_id: wardId } : {}) })}`),
   // Dashboard & Analytics Services
   getDashboardSummary: () => fetchJson(`${BASE_URL}/dashboard/summary`),
   getComplaintsByType: () => fetchJson(`${BASE_URL}/dashboard/complaints-by-type`),
@@ -64,6 +97,18 @@ export const api = {
   getComplaintsPage: (params = {}) => fetchJson(complaintQuery(params)),
   getComplaints: async (params = {}) => (await fetchJson(complaintQuery(params))).complaints,
   getComplaintById: (id) => fetchJson(`${BASE_URL}/complaints/${id}`),
+  updateComplaintStatus: (id, status, note) => fetchJson(`${BASE_URL}/complaints/${encodeURIComponent(id)}/status`, {
+    method: 'PATCH', body: JSON.stringify({ status, note }),
+  }),
+  addComplaintNote: (id, note) => fetchJson(`${BASE_URL}/complaints/${encodeURIComponent(id)}/notes`, {
+    method: 'POST', body: JSON.stringify({ note }),
+  }),
+  linkComplaintIncident: (id, incidentId) => fetchJson(`${BASE_URL}/complaints/${encodeURIComponent(id)}/incident`, {
+    method: 'POST', body: JSON.stringify({ incident_id: incidentId }),
+  }),
+  addIncidentNote: (id, note, shareWithCitizens = false) => fetchJson(`${BASE_URL}/incidents/${encodeURIComponent(id)}/notes`, {
+    method: 'POST', body: JSON.stringify({ note, share_with_citizens: shareWithCitizens }),
+  }),
 
   // Wards & Spatial GIS
   getWards: () => fetchJson(`${BASE_URL}/wards`),
@@ -141,6 +186,7 @@ export const api = {
     return fetchJson(`${BASE_URL}/incidents${qs ? `?${qs}` : ''}`);
   },
   getIncidentEvents: (incidentId) => fetchJson(`${BASE_URL}/incidents/${encodeURIComponent(incidentId)}/events`),
+  getIncident: (incidentId) => fetchJson(`${BASE_URL}/incidents/${encodeURIComponent(incidentId)}`),
   createIncident: (data) =>
     fetchJson(`${BASE_URL}/incidents`, {
       method: 'POST',

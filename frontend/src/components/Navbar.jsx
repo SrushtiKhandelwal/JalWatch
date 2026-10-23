@@ -4,9 +4,11 @@ import { Plus } from 'lucide-react';
 const navigation = [
   { id: 'dashboard', label: 'Overview' },
   { id: 'complaints', label: 'Complaints' },
+  { id: 'clusters', label: 'Related reports' },
   { id: 'map', label: 'Map' },
   { id: 'predictions', label: 'Insights' },
-  { id: 'alerts', label: 'Alerts' },
+  { id: 'alerts', label: 'Risk signals' },
+  { id: 'notices', label: 'Notices' },
   { id: 'incidents', label: 'Incidents' },
 ];
 

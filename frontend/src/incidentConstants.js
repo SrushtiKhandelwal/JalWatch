@@ -7,14 +7,6 @@ export const INCIDENT_STAGES = [
   { id: 'closed', label: 'Closed', color: '#64748b' },
 ];
 
-export const CREW_TEAMS = [
-  'NMC Quick Response Team 1 (Central)',
-  'Zone 9 AshiNagar Pipeline Crew',
-  'Zone 8 Lakadganj Emergency Leakage Squad',
-  'Dharampeth Water Quality Field Lab',
-  'Heavy Valve & Booster Maintenance Unit',
-];
-
 export const INCIDENT_TYPES = [
   { value: 'pipe_burst', label: 'Pipe Burst' },
   { value: 'contamination', label: 'Contamination' },

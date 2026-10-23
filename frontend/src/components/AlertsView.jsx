@@ -124,9 +124,9 @@ export default function AlertsView({ onEscalateToIncident }) {
       {/* View Header */}
       <div className="page-header">
         <div>
-          <span className="eyebrow">Operations / Alerts</span>
-          <h1>Alerts</h1>
-          <p>Review signals and decide what needs a response.</p>
+          <span className="eyebrow">Operations / Internal review</span>
+          <h1>Risk signals</h1>
+          <p>Review potential problems and decide what needs a response. These items are internal; citizens are not contacted from this page.</p>
         </div>
 
         <button 
@@ -134,7 +134,7 @@ export default function AlertsView({ onEscalateToIncident }) {
           className="btn btn-primary"
         >
           <Plus size={16} />
-          <span>New alert</span>
+          <span>New signal</span>
         </button>
       </div>
 
@@ -145,7 +145,7 @@ export default function AlertsView({ onEscalateToIncident }) {
             value={filterStatus} 
             onChange={(e) => { setFilterStatus(e.target.value); setPage(1); }}
             className="select"
-            aria-label="Filter alerts by status"
+            aria-label="Filter signals by status"
           >
             <option value="">All statuses</option>
             <option value="active">Active</option>
@@ -160,7 +160,7 @@ export default function AlertsView({ onEscalateToIncident }) {
             value={filterSeverity} 
             onChange={(e) => { setFilterSeverity(e.target.value); setPage(1); }}
             className="select"
-            aria-label="Filter alerts by severity"
+            aria-label="Filter signals by severity"
           >
             <option value="">All severities</option>
             <option value="critical">Critical</option>
@@ -178,12 +178,12 @@ export default function AlertsView({ onEscalateToIncident }) {
       {/* Alerts Stream List */}
       {loading ? (
         <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-muted)' }}>
-          Loading active alert stream...
+          Loading risk signals...
         </div>
       ) : alerts.length === 0 ? (
         <div className="glass-card" style={{ textAlign: 'center', padding: '60px 20px' }}>
           <CheckCircle size={44} color="#10b981" style={{ margin: '0 auto 12px' }} />
-          <h3>No matching alerts found</h3>
+          <h3>No matching signals found</h3>
           <p style={{ marginTop: 6 }}>No records match the selected filters.</p>
         </div>
       ) : (
@@ -264,7 +264,7 @@ export default function AlertsView({ onEscalateToIncident }) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <Radio size={20} color="#ef4444" />
-                <h3>New alert</h3>
+                <h3>New risk signal</h3>
               </div>
               <button 
                 onClick={() => setIsCreatingAlert(false)}
@@ -353,7 +353,7 @@ export default function AlertsView({ onEscalateToIncident }) {
                 </button>
                 <button type="submit" className="btn btn-danger">
                   <Send size={14} />
-                  <span>Create Alert</span>
+                  <span>Add signal</span>
                 </button>
               </div>
             </form>
@@ -364,7 +364,7 @@ export default function AlertsView({ onEscalateToIncident }) {
       {historyAlert && (
         <div className="modal-backdrop" onClick={() => setHistoryAlert(null)}>
           <div className="modal-content" onClick={(event) => event.stopPropagation()}>
-            <h3 style={{ marginBottom: 8 }}>Alert History</h3>
+            <h3 style={{ marginBottom: 8 }}>Signal history</h3>
             <p style={{ marginBottom: 16 }}>{historyAlert.title}</p>
             {historyError ? <p role="alert" style={{ color: 'var(--rose)' }}>{historyError}</p> : (
               <ol style={{ paddingLeft: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>

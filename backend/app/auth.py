@@ -71,6 +71,7 @@ def login(credentials: LoginRequest, response: Response):
         secure=settings.COOKIE_SECURE,
         samesite="strict",
     )
+    response.delete_cookie("jalwatch_citizen_session", path="/api")
     return {"authenticated": True}
 
 

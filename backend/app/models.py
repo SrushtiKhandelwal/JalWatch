@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 
 from sqlalchemy import (
     Column, String, Integer, Float, DateTime, Text,
-    ForeignKey, JSON,
+    ForeignKey, JSON, UniqueConstraint,
 )
 from sqlalchemy.orm import relationship
 
@@ -93,6 +93,25 @@ class Locality(Base):
     ward = relationship("Ward", back_populates="localities")
 
 
+class Citizen(Base):
+    """A registered resident; the selected area is not an address geocode."""
+
+    __tablename__ = "citizens"
+
+    citizen_id = Column(String, primary_key=True)
+    full_name = Column(String(120), nullable=False)
+    email = Column(String(254), nullable=False, unique=True, index=True)
+    password_hash = Column(String(255), nullable=False)
+    address = Column(String(500), nullable=False)
+    ward_id = Column(String, ForeignKey("wards.ward_id"), nullable=False, index=True)
+    locality_id = Column(String, ForeignKey("localities.locality_id"), nullable=False)
+    location_status = Column(String(40), nullable=False, default="self_selected_unverified")
+    created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+
+    ward = relationship("Ward")
+    locality = relationship("Locality")
+
+
 # [ COMPLAINT: citizen grievance report ]
 
 class Complaint(Base):
@@ -118,6 +137,70 @@ class Complaint(Base):
 
     # Relationships
     ward = relationship("Ward", back_populates="complaints")
+    detail = relationship("ComplaintDetail", back_populates="complaint", uselist=False)
+    events = relationship("ComplaintEvent", back_populates="complaint", order_by="ComplaintEvent.id")
+
+
+class ComplaintDetail(Base):
+    """Intake fields added without changing the existing 50,000-row complaint table."""
+
+    __tablename__ = "complaint_details"
+
+    complaint_id = Column(String, ForeignKey("complaints.complaint_id"), primary_key=True)
+    title = Column(String(200), nullable=False)
+    address = Column(String(500), nullable=False)
+    observed_at = Column(DateTime, nullable=True)
+    location_precision = Column(String(40), nullable=False, default="ward_representative")
+
+    complaint = relationship("Complaint", back_populates="detail")
+
+
+class ComplaintEvent(Base):
+    """Append-only updates visible to the complaint owner and administrators."""
+
+    __tablename__ = "complaint_events"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    complaint_id = Column(String, ForeignKey("complaints.complaint_id"), nullable=False, index=True)
+    from_status = Column(String, nullable=True)
+    to_status = Column(String, nullable=False)
+    note = Column(Text, nullable=True)
+    actor_role = Column(String(20), nullable=False)
+    occurred_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+
+    complaint = relationship("Complaint", back_populates="events")
+
+
+class ServiceNotice(Base):
+    """Citizen-facing service information, separate from internal risk alerts."""
+
+    __tablename__ = "service_notices"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    title = Column(String(200), nullable=False)
+    notice_type = Column(String(40), nullable=False)
+    message = Column(Text, nullable=False)
+    target_kind = Column(String(20), nullable=False)
+    target_ids = Column(JSON, nullable=False, default=list)
+    starts_at = Column(String(32), nullable=True)
+    ends_at = Column(String(32), nullable=True)
+    publish_at = Column(String(32), nullable=True)
+    status = Column(String(20), nullable=False, default="draft")
+    revision = Column(Integer, nullable=False, default=1)
+    created_at = Column(String(32), nullable=False)
+    updated_at = Column(String(32), nullable=False)
+    published_at = Column(String(32), nullable=True)
+
+
+class NoticeRead(Base):
+    __tablename__ = "notice_reads"
+    __table_args__ = (UniqueConstraint("notice_id", "citizen_id"),)
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    notice_id = Column(Integer, ForeignKey("service_notices.id"), nullable=False, index=True)
+    citizen_id = Column(String, ForeignKey("citizens.citizen_id"), nullable=False, index=True)
+    read_revision = Column(Integer, nullable=False)
+    read_at = Column(String(32), nullable=False)
 
 
 # [ ALERT: early warning telemetry generated from risk thresholds ]

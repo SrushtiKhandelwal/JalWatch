@@ -15,8 +15,9 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from .config import settings
 from .auth import access_configured, require_session, router as auth_router
+from .citizen_auth import router as citizen_auth_router, public_router
 from .database import engine, Base
-from .routers import complaints, wards, alerts, incidents, dashboard, predictions, network
+from .routers import complaints, wards, alerts, incidents, dashboard, predictions, network, citizen, clusters, service_notices
 
 # Create database tables on startup (if they don't exist)
 Base.metadata.create_all(bind=engine)
@@ -45,10 +46,14 @@ app.add_middleware(
 # -- Register all routers --------------------------------
 
 app.include_router(auth_router, prefix=settings.API_PREFIX)
+app.include_router(citizen_auth_router, prefix=settings.API_PREFIX)
+app.include_router(public_router, prefix=settings.API_PREFIX)
+app.include_router(citizen.router, prefix=settings.API_PREFIX)
+app.include_router(service_notices.citizen_router, prefix=settings.API_PREFIX)
 for protected_router in (
     dashboard.router, complaints.router, wards.router,
     alerts.router, incidents.router, predictions.router,
-    network.router,
+    network.router, clusters.router, service_notices.admin_router,
 ):
     app.include_router(
         protected_router,

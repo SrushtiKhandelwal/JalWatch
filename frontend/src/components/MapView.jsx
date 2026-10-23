@@ -75,11 +75,12 @@ function ChangeMapView({ coords, zoom }) {
   return null;
 }
 
-export default function MapView({ selectedWardId: initialWardId }) {
+export default function MapView({ selectedWardId: initialWardId, onOpenComplaint, onOpenIncident }) {
   // Spatial layer data
   const [wards, setWards] = useState([]);
   const [localities, setLocalities] = useState([]);
   const [complaints, setComplaints] = useState([]);
+  const [incidents, setIncidents] = useState([]);
   const [nodes, setNodes] = useState([]);
   const [pipes, setPipes] = useState([]);
   const [totalComplaintsCount, setTotalComplaintsCount] = useState(0);
@@ -87,6 +88,7 @@ export default function MapView({ selectedWardId: initialWardId }) {
   // Layer visibility toggles
   const [showWards, setShowWards] = useState(true);
   const [showComplaints, setShowComplaints] = useState(true);
+  const [showIncidents, setShowIncidents] = useState(true);
   const [showNodes, setShowNodes] = useState(false);
   const [showPipes, setShowPipes] = useState(false);
 
@@ -137,7 +139,7 @@ export default function MapView({ selectedWardId: initialWardId }) {
     try {
       const wardParam = selectedWardId || undefined;
 
-      const [nodesGeoJson, pipesGeoJson, complaintsRes] = await Promise.all([
+      const [nodesGeoJson, pipesGeoJson, complaintsRes, incidentRows] = await Promise.all([
         api.getNetworkNodes({ ward_id: wardParam }),
         api.getNetworkPipes({ ward_id: wardParam }),
         api.getComplaintsPage({
@@ -146,11 +148,13 @@ export default function MapView({ selectedWardId: initialWardId }) {
           page_size: complaintLimit,
           page: 1,
         }),
+        api.getIncidents({ ward_id: wardParam, page_size: 100 }),
       ]);
 
       setNodes(nodesGeoJson?.features || []);
       setPipes(pipesGeoJson?.features || []);
       setComplaints(complaintsRes?.complaints || []);
+      setIncidents(incidentRows || []);
       setTotalComplaintsCount(complaintsRes?.total || 0);
     } catch (err) {
       console.error('Failed to load GIS layers:', err);
@@ -284,6 +288,12 @@ export default function MapView({ selectedWardId: initialWardId }) {
 
           {/* Network Pipes Toggle */}
           <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', userSelect: 'none' }}>
+            <input type="checkbox" checked={showIncidents} onChange={(event) => setShowIncidents(event.target.checked)} />
+            <span style={{ color: showIncidents ? 'var(--text-primary)' : 'var(--text-muted)' }}>Incidents</span>
+          </label>
+
+          {/* Network Pipes Toggle */}
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', userSelect: 'none' }}>
             <input
               type="checkbox"
               checked={showPipes}
@@ -318,6 +328,7 @@ export default function MapView({ selectedWardId: initialWardId }) {
           ) : (
             <span>
               {showComplaints ? <>Showing <strong>{complaints.length}</strong> of <strong>{totalComplaintsCount.toLocaleString()}</strong> complaints</> : 'Complaints hidden'}
+              {showIncidents && ` · ${incidents.length} incidents shown (up to 100)`}
               {selectedWardId && ` in ${selectedWardId}`}
             </span>
           )}
@@ -500,6 +511,13 @@ export default function MapView({ selectedWardId: initialWardId }) {
               );
             })}
 
+            {showIncidents && incidents.map((incident) => incident.latitude != null && incident.longitude != null ?
+              <CircleMarker key={incident.incident_id} center={[incident.latitude, incident.longitude]} radius={9}
+                pathOptions={{ fillColor: '#8b5a9b', fillOpacity: 0.9, color: '#fff', weight: 2 }}
+                eventHandlers={{ click: () => setSelectedFeature({ type: 'incident', data: incident }) }}>
+                <Popup><strong>{incident.incident_id}</strong><div>{incident.title}</div><div>{incident.status.replaceAll('_', ' ')}</div><small>Map reference point; confirm the exact site in the field.</small></Popup>
+              </CircleMarker> : null)}
+
             {/* 4. Municipal Ward Centroid Markers */}
             {showWards && wards.map((ward) => {
               const lat = ward.representative_latitude;
@@ -594,6 +612,10 @@ export default function MapView({ selectedWardId: initialWardId }) {
                       <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#c58b48' }} />
                       <span>Water Shortage</span>
                     </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <div style={{ width: 11, height: 11, borderRadius: '50%', background: '#8b5a9b' }} />
+                      <span>Incident</span>
+                    </div>
                   </div>
                 </div>
 
@@ -644,12 +666,14 @@ export default function MapView({ selectedWardId: initialWardId }) {
                 <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase' }}>
                   {selectedFeature.type === 'ward' && 'Municipal Ward'}
                   {selectedFeature.type === 'complaint' && 'Citizen Grievance'}
+                  {selectedFeature.type === 'incident' && 'Response Incident'}
                   {selectedFeature.type === 'node' && 'Network Node'}
                   {selectedFeature.type === 'pipe' && 'Distribution Pipe'}
                 </span>
                 <h3 style={{ fontSize: '1.25rem', color: 'var(--text-primary)', marginTop: 2 }}>
                   {selectedFeature.type === 'ward' && selectedFeature.data.ward_name}
                   {selectedFeature.type === 'complaint' && (selectedFeature.data.complaint_type || 'Grievance').replace(/_/g, ' ')}
+                  {selectedFeature.type === 'incident' && selectedFeature.data.title}
                   {selectedFeature.type === 'node' && selectedFeature.data.node_id}
                   {selectedFeature.type === 'pipe' && selectedFeature.data.pipe_id}
                 </h3>
@@ -752,8 +776,16 @@ export default function MapView({ selectedWardId: initialWardId }) {
                     </p>
                   </div>
                 )}
+                <p className="quiet-note">{selectedFeature.data.data_origin === 'citizen_submission' ? 'Citizen submission; point may be approximate.' : 'Supplied sample complaint.'}</p>
               </div>
             )}
+
+            {selectedFeature.type === 'complaint' && onOpenComplaint && <button className="btn btn-secondary btn-sm" type="button" onClick={() => onOpenComplaint(selectedFeature.data.complaint_id)}>Open complaint record</button>}
+            {selectedFeature.type === 'incident' && <div><p className="quiet-note">{selectedFeature.data.incident_id} · {selectedFeature.data.status.replaceAll('_', ' ')} · {selectedFeature.data.ward_id}</p>
+              <p className="quiet-note">Map reference point; confirm the exact site in the field.</p>
+              <p>{selectedFeature.data.description || 'No description recorded.'}</p>
+              <p className="quiet-note">{selectedFeature.data.related_complaint_ids.length} linked complaints · Assigned to {selectedFeature.data.assigned_to || 'no crew yet'}</p>
+              {onOpenIncident && <button className="btn btn-secondary btn-sm" type="button" onClick={() => onOpenIncident(selectedFeature.data.incident_id)}>Open incident</button>}</div>}
 
             {/* Network Pipe Details */}
             {selectedFeature.type === 'pipe' && (

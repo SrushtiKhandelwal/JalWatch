@@ -27,6 +27,9 @@ def get_dashboard_summary(db: Session = Depends(get_db)):
     """
     # Complaint counts by status
     total = db.query(func.count(Complaint.complaint_id)).scalar()
+    citizen_total = db.query(func.count(Complaint.complaint_id)).filter(
+        Complaint.data_origin == "citizen_submission"
+    ).scalar()
     open_c = db.query(func.count(Complaint.complaint_id)).filter(
         Complaint.status == "open"
     ).scalar()
@@ -81,6 +84,8 @@ def get_dashboard_summary(db: Session = Depends(get_db)):
 
     return DashboardSummary(
         total_complaints=total,
+        citizen_complaints=citizen_total,
+        sample_complaints=total - citizen_total,
         open_complaints=open_c,
         in_progress_complaints=in_progress,
         resolved_complaints=resolved,

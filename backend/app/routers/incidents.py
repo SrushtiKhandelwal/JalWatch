@@ -9,10 +9,11 @@ from sqlalchemy import update as sql_update
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..models import Alert, Complaint, Incident, IncidentEvent, Ward
+from ..models import Alert, Complaint, Incident, IncidentEvent, Locality, Ward
 from ..schemas import (
-    IncidentCreate, IncidentEventResponse, IncidentResponse, IncidentStatusUpdate,
+    IncidentCreate, IncidentEventResponse, IncidentResponse, IncidentStatusUpdate, IncidentNoteCreate,
 )
+from ..services.complaints import add_event
 
 router = APIRouter(prefix="/incidents", tags=["Incidents"])
 
@@ -67,6 +68,10 @@ def create_incident(data: IncidentCreate, db: Session = Depends(get_db)):
     """Create a ticket, optionally assigning a crew in the same transaction."""
     if not db.query(Ward).filter(Ward.ward_id == data.ward_id).first():
         raise HTTPException(status_code=404, detail="Ward not found")
+    if data.locality_id:
+        locality = db.get(Locality, data.locality_id)
+        if locality is None or locality.ward_id != data.ward_id:
+            raise HTTPException(status_code=422, detail="Locality must belong to the selected ward")
     if data.related_alert_id is not None:
         alert = db.query(Alert).filter(Alert.id == data.related_alert_id).first()
         if alert is None or alert.ward_id != data.ward_id:
@@ -74,12 +79,15 @@ def create_incident(data: IncidentCreate, db: Session = Depends(get_db)):
     complaint_ids = set(data.related_complaint_ids)
     if len(complaint_ids) != len(data.related_complaint_ids):
         raise HTTPException(status_code=422, detail="Related complaint IDs must be unique")
+    linked_complaints = []
     if complaint_ids:
-        complaints = db.query(Complaint.complaint_id, Complaint.ward_id).filter(
+        linked_complaints = db.query(Complaint).filter(
             Complaint.complaint_id.in_(complaint_ids)
         ).all()
-        if len(complaints) != len(complaint_ids) or any(ward_id != data.ward_id for _, ward_id in complaints):
+        if len(linked_complaints) != len(complaint_ids) or any(item.ward_id != data.ward_id for item in linked_complaints):
             raise HTTPException(status_code=422, detail="Related complaints must belong to the selected ward")
+        if any(item.incident_id for item in linked_complaints):
+            raise HTTPException(status_code=409, detail="A complaint is already linked to an incident")
 
     now = datetime.now(timezone.utc)
     status = "assigned" if data.assigned_to else "reported"
@@ -101,6 +109,12 @@ def create_incident(data: IncidentCreate, db: Session = Depends(get_db)):
         reported_at=now,
     )
     db.add(incident)
+    for complaint in linked_complaints:
+        complaint.incident_id = incident.incident_id
+        add_event(db, complaint, complaint.status, f"Linked to incident {incident.incident_id}", "admin", complaint.status)
+        if status == "assigned" and complaint.status == "open":
+            add_event(db, complaint, "in_progress", "Response team assigned for investigation", "admin", "open")
+            complaint.status = "in_progress"
     db.add(IncidentEvent(
         incident_id=incident.incident_id, from_status=None, to_status=status,
         assigned_to=data.assigned_to, note="Incident created", occurred_at=now,
@@ -121,6 +135,22 @@ def get_incident_events(incident_id: str, db: Session = Depends(get_db)):
     return db.query(IncidentEvent).filter(IncidentEvent.incident_id == incident_id).order_by(
         IncidentEvent.id
     ).all()
+
+
+@router.post("/{incident_id}/notes", response_model=IncidentEventResponse, status_code=201)
+def add_incident_note(incident_id: str, data: IncidentNoteCreate, db: Session = Depends(get_db)):
+    incident = _find_incident(db, incident_id)
+    event = IncidentEvent(
+        incident_id=incident_id, from_status=incident.status, to_status=incident.status,
+        assigned_to=incident.assigned_to, note=data.note, occurred_at=datetime.now(timezone.utc),
+    )
+    db.add(event)
+    if data.share_with_citizens:
+        for complaint in db.query(Complaint).filter(Complaint.incident_id == incident_id).all():
+            add_event(db, complaint, complaint.status, data.note, "admin", complaint.status)
+    db.commit()
+    db.refresh(event)
+    return event
 
 
 @router.patch("/{incident_id}/status", response_model=IncidentResponse)
@@ -161,6 +191,32 @@ def update_incident_status(
         assigned_to=values.get("assigned_to", incident.assigned_to),
         note=update.resolution_notes, occurred_at=now,
     ))
+
+    complaint_status = {
+        "assigned": "in_progress",
+        "in_progress": "in_progress",
+        "resolved": "resolved",
+        "closed": "closed",
+    }.get(update.status)
+    if complaint_status:
+        for complaint in db.query(Complaint).filter(Complaint.incident_id == incident_id).all():
+            permitted = (
+                (complaint_status == "in_progress" and complaint.status == "open") or
+                (complaint_status == "resolved" and complaint.status in ("open", "in_progress")) or
+                (complaint_status == "closed" and complaint.status == "resolved")
+            )
+            if not permitted:
+                continue
+            previous_complaint_status = complaint.status
+            complaint.status = complaint_status
+            if complaint_status == "resolved":
+                complaint.resolved_at = now
+            add_event(
+                db, complaint, complaint_status,
+                f"Linked incident {incident_id} moved to {update.status.replace('_', ' ')}"
+                + (f": {update.resolution_notes}" if update.resolution_notes else ""),
+                "admin", previous_complaint_status,
+            )
 
     db.commit()
     db.refresh(incident)

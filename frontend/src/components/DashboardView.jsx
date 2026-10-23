@@ -54,7 +54,7 @@ export default function DashboardView({ onSelectWard, onNavigateTab }) {
         <div>
           <span className="eyebrow">JalWatch / Overview</span>
           <h1>Water operations, at a glance.</h1>
-          <p>Complaints, alerts, and response work in one place.</p>
+          <p>Complaints, risk signals, and response work in one place.</p>
         </div>
         <button className="btn btn-secondary btn-sm" type="button" onClick={() => loadData(true)} disabled={refreshing}>
           <RefreshCw size={15} className={refreshing ? 'spin' : ''} /> Refresh
@@ -62,7 +62,7 @@ export default function DashboardView({ onSelectWard, onNavigateTab }) {
       </div>
 
       {summary?.latest_complaint_at && (
-        <div className="quiet-note">Dataset through {formatDate(summary.latest_complaint_at)}</div>
+        <div className="quiet-note">Dataset through {formatDate(summary.latest_complaint_at)} · {formatNumber(summary.citizen_complaints)} citizen submissions · {formatNumber(summary.sample_complaints)} supplied sample complaints. Risk signals and incidents may also include seeded examples.</div>
       )}
       {error && <div role="alert" className="glass-card content-card">Unable to load the overview: {error}</div>}
 
@@ -73,7 +73,7 @@ export default function DashboardView({ onSelectWard, onNavigateTab }) {
           <span className="metric-subtext">{formatNumber(summary?.resolved_complaints)} resolved</span>
         </div>
         <div className="glass-card metric-card">
-          <div className="metric-top"><span className="metric-label">Open alerts</span><span className="metric-icon"><BellRing size={18} /></span></div>
+          <div className="metric-top"><span className="metric-label">Signals to review</span><span className="metric-icon"><BellRing size={18} /></span></div>
           <strong className="metric-value">{loading ? '—' : formatNumber(summary?.active_alerts)}</strong>
           <span className="metric-subtext">Waiting for review</span>
         </div>
@@ -157,7 +157,7 @@ export default function DashboardView({ onSelectWard, onNavigateTab }) {
       </div>
 
       <div className="quick-links" aria-label="Quick actions">
-        <button className="quick-link" type="button" onClick={() => onNavigateTab('alerts')}><BellRing size={16} /> Review alerts <ArrowUpRight size={14} /></button>
+        <button className="quick-link" type="button" onClick={() => onNavigateTab('alerts')}><BellRing size={16} /> Review signals <ArrowUpRight size={14} /></button>
         <button className="quick-link" type="button" onClick={() => onNavigateTab('incidents')}><Wrench size={16} /> Track incidents <ArrowUpRight size={14} /></button>
         <button className="quick-link" type="button" onClick={() => onNavigateTab('map')}><MapPinned size={16} /> Open map <ArrowUpRight size={14} /></button>
       </div>

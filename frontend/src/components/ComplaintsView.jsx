@@ -6,7 +6,13 @@ const displayDate = (value, includeTime = false) => value
   ? (includeTime ? new Date(value).toLocaleString() : new Date(value).toLocaleDateString())
   : 'Unknown';
 
-export default function ComplaintsView() {
+const nextStatuses = {
+  open: ['in_progress', 'resolved'],
+  in_progress: ['resolved'],
+  resolved: ['closed'],
+};
+
+export default function ComplaintsView({ onCreateIncident, focusComplaintId, focusWardId }) {
   const [complaints, setComplaints] = useState([]);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -18,9 +24,22 @@ export default function ComplaintsView() {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
   const [selectedSeverity, setSelectedSeverity] = useState('');
+  const [selectedSource, setSelectedSource] = useState('');
+  const [selectedZone, setSelectedZone] = useState('');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+  const [sort, setSort] = useState('newest');
   const [searchQuery, setSearchQuery] = useState('');
   const [showMoreFilters, setShowMoreFilters] = useState(false);
   const [inspectComplaint, setInspectComplaint] = useState(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [actionStatus, setActionStatus] = useState('');
+  const [actionNote, setActionNote] = useState('');
+  const [actionBusy, setActionBusy] = useState(false);
+  const [actionError, setActionError] = useState('');
+  const [existingIncidents, setExistingIncidents] = useState([]);
+  const [linkIncidentId, setLinkIncidentId] = useState('');
+  const [loadError, setLoadError] = useState('');
 
   const PAGE_SIZE = 25;
 
@@ -48,13 +67,19 @@ export default function ComplaintsView() {
         category: selectedCategory || undefined,
         status: selectedStatus || undefined,
         severity: selectedSeverity || undefined,
+        source: selectedSource || undefined,
+        zone_id: selectedZone || undefined,
+        from_date: fromDate || undefined,
+        to_date: toDate || undefined,
+        sort,
         search: searchQuery.trim() || undefined,
       });
       setComplaints(data.complaints);
       setTotal(data.total);
       setTotalPages(data.total_pages);
+      setLoadError('');
     } catch (err) {
-      console.error('Failed to load complaints:', err);
+      setLoadError(err.message);
     } finally {
       setLoading(false);
     }
@@ -66,7 +91,60 @@ export default function ComplaintsView() {
 
   useEffect(() => {
     loadComplaints();
-  }, [page, selectedWard, selectedCategory, selectedStatus, selectedSeverity, searchQuery]);
+  }, [page, selectedWard, selectedCategory, selectedStatus, selectedSeverity, selectedSource, selectedZone, fromDate, toDate, sort, searchQuery]);
+
+  const openComplaint = async (complaintId) => {
+    setDetailLoading(true);
+    setActionStatus('');
+    setActionNote('');
+    setActionError('');
+    setExistingIncidents([]);
+    setLinkIncidentId('');
+    try {
+      const detail = await api.getComplaintById(complaintId);
+      setInspectComplaint(detail);
+      if (!detail.incident_id) {
+        try { setExistingIncidents(await api.getIncidents({ ward_id: detail.ward_id, page_size: 100 })); }
+        catch (err) { setActionError(`Unable to load existing incidents: ${err.message}`); }
+      }
+    }
+    catch (err) { setLoadError(err.message); }
+    finally { setDetailLoading(false); }
+  };
+
+  const linkExisting = async () => {
+    setActionBusy(true); setActionError('');
+    try {
+      const updated = await api.linkComplaintIncident(inspectComplaint.complaint_id, linkIncidentId);
+      setInspectComplaint(updated);
+      setLinkIncidentId('');
+      loadComplaints();
+    } catch (err) { setActionError(err.message); }
+    finally { setActionBusy(false); }
+  };
+
+  useEffect(() => {
+    if (focusComplaintId) openComplaint(focusComplaintId);
+  }, [focusComplaintId]);
+  useEffect(() => {
+    if (focusWardId) { setSelectedWard(focusWardId); setPage(0); }
+  }, [focusWardId]);
+
+  const saveAction = async (event) => {
+    event.preventDefault();
+    setActionBusy(true);
+    setActionError('');
+    try {
+      const updated = actionStatus
+        ? await api.updateComplaintStatus(inspectComplaint.complaint_id, actionStatus, actionNote)
+        : await api.addComplaintNote(inspectComplaint.complaint_id, actionNote);
+      setInspectComplaint(updated);
+      setActionStatus('');
+      setActionNote('');
+      loadComplaints();
+    } catch (err) { setActionError(err.message); }
+    finally { setActionBusy(false); }
+  };
 
   return (
     <div className="page-stack">
@@ -74,10 +152,11 @@ export default function ComplaintsView() {
         <div>
           <span className="eyebrow">Explore / Complaints</span>
           <h1>Complaints</h1>
-          <p>Browse the reported issues in the provided dataset.</p>
+          <p>Review citizen submissions alongside the supplied sample dataset.</p>
         </div>
         <span className="quiet-note">{total.toLocaleString()} records</span>
       </div>
+      {loadError && <p role="alert" style={{ color: 'var(--rose)' }}>Unable to load complaints: {loadError}</p>}
 
       <div className="glass-card complaint-filter-card">
         <div className="complaint-filter-row">
@@ -108,6 +187,10 @@ export default function ComplaintsView() {
               </option>
             ))}
           </select>
+          <select value={selectedSource} onChange={(event) => { setSelectedSource(event.target.value); setPage(0); }}
+            className="select" aria-label="Filter by record source" style={{ flex: '0 1 180px' }}>
+            <option value="">All sources</option><option value="citizen">Citizen submissions</option><option value="sample">Supplied samples</option>
+          </select>
           <button
             type="button"
             className="btn btn-secondary"
@@ -115,7 +198,7 @@ export default function ComplaintsView() {
             aria-expanded={showMoreFilters}
           >
             <SlidersHorizontal size={16} />
-            <span>More filters{[selectedCategory, selectedStatus, selectedSeverity].filter(Boolean).length > 0 ? ` (${[selectedCategory, selectedStatus, selectedSeverity].filter(Boolean).length})` : ''}</span>
+            <span>More filters{[selectedCategory, selectedStatus, selectedSeverity, selectedZone, fromDate, toDate].filter(Boolean).length > 0 ? ` (${[selectedCategory, selectedStatus, selectedSeverity, selectedZone, fromDate, toDate].filter(Boolean).length})` : ''}</span>
           </button>
         </div>
         {showMoreFilters && <div className="complaint-filter-row">
@@ -161,8 +244,17 @@ export default function ComplaintsView() {
             <option value="medium">Medium</option>
             <option value="low">Low</option>
           </select>
-          {(selectedCategory || selectedStatus || selectedSeverity) && (
-            <button type="button" className="text-action" onClick={() => { setSelectedCategory(''); setSelectedStatus(''); setSelectedSeverity(''); setPage(0); }}>Clear</button>
+          <select value={selectedZone} onChange={(event) => { setSelectedZone(event.target.value); setPage(0); }} className="select" aria-label="Filter by zone">
+            <option value="">All zones</option>
+            {[...new Map(wards.map((ward) => [ward.zone_id, ward.zone_name])).entries()].map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+          </select>
+          <label className="quiet-note">From <input className="input" type="date" value={fromDate} onChange={(event) => { setFromDate(event.target.value); setPage(0); }} /></label>
+          <label className="quiet-note">To <input className="input" type="date" value={toDate} onChange={(event) => { setToDate(event.target.value); setPage(0); }} /></label>
+          <select value={sort} onChange={(event) => { setSort(event.target.value); setPage(0); }} className="select" aria-label="Sort complaints">
+            <option value="newest">Newest first</option><option value="oldest">Oldest first</option>
+          </select>
+          {(selectedCategory || selectedStatus || selectedSeverity || selectedZone || fromDate || toDate || sort !== 'newest') && (
+            <button type="button" className="text-action" onClick={() => { setSelectedCategory(''); setSelectedStatus(''); setSelectedSeverity(''); setSelectedZone(''); setFromDate(''); setToDate(''); setSort('newest'); setPage(0); }}>Clear</button>
           )}
         </div>}
       </div>
@@ -196,6 +288,9 @@ export default function ComplaintsView() {
                   <tr key={c.complaint_id}>
                     <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--primary)', fontWeight: 600 }}>
                       {c.complaint_id}
+                      <div style={{ fontFamily: 'var(--font-sans)', fontSize: '0.67rem', color: 'var(--text-muted)', fontWeight: 400 }}>
+                        {c.data_origin === 'citizen_submission' ? 'Citizen submission' : 'Supplied sample'}
+                      </div>
                     </td>
                     <td style={{ color: 'var(--text-primary)' }}>
                       <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -219,7 +314,7 @@ export default function ComplaintsView() {
                     <td>{displayDate(c.reported_at || c.created_at)}</td>
                     <td>
                       <button
-                        onClick={() => setInspectComplaint(c)}
+                        onClick={() => openComplaint(c.complaint_id)}
                         className="btn btn-secondary btn-sm"
                         style={{ padding: '4px 8px', fontSize: '0.75rem' }}
                       >
@@ -262,6 +357,7 @@ export default function ComplaintsView() {
       </div>
 
       {/* Inspect Complaint Detail Modal */}
+      {detailLoading && <p role="status" className="quiet-note">Loading complaint details…</p>}
       {inspectComplaint && (
         <div className="modal-backdrop" onClick={() => setInspectComplaint(null)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -271,7 +367,7 @@ export default function ComplaintsView() {
                   {inspectComplaint.complaint_id}
                 </span>
                 <h3 style={{ marginTop: 4, textTransform: 'capitalize' }}>
-                  {(inspectComplaint.complaint_type || inspectComplaint.category || '').replace(/_/g, ' ')}
+                  {inspectComplaint.title || (inspectComplaint.complaint_type || inspectComplaint.category || '').replace(/_/g, ' ')}
                 </h3>
               </div>
               <button 
@@ -302,6 +398,7 @@ export default function ComplaintsView() {
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, fontSize: '0.8rem' }}>
+                {inspectComplaint.address && <div><span style={{ color: 'var(--text-muted)' }}>Reported address:</span><div>{inspectComplaint.address}</div></div>}
                 <div>
                   <span style={{ color: 'var(--text-muted)' }}>Locality:</span>
                   <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
@@ -323,9 +420,39 @@ export default function ComplaintsView() {
                   <div>{displayDate(inspectComplaint.reported_at || inspectComplaint.created_at, true)}</div>
                 </div>
               </div>
+              {inspectComplaint.location_precision === 'ward_representative' && <p className="quiet-note">Map coordinates are the ward representative point, not the exact address.</p>}
+              <p className="quiet-note">Source: {inspectComplaint.data_origin === 'citizen_submission' ? 'Citizen submission' : 'Supplied sample record'}</p>
+              {inspectComplaint.incident_id && <p className="quiet-note">Linked incident: {inspectComplaint.incident_id}</p>}
+              <div className="complaint-history"><h4>History</h4>
+                {inspectComplaint.events?.length ? <ol>{inspectComplaint.events.map((entry) => <li key={entry.id}>
+                  <strong>{entry.to_status.replaceAll('_', ' ')}</strong> · {displayDate(entry.occurred_at, true)}
+                  {entry.note && <p>{entry.note}</p>}
+                </li>)}</ol> : <p className="quiet-note">No history is available for this imported record.</p>}
+              </div>
+              <form onSubmit={saveAction} className="complaint-action-form">
+                <label htmlFor="complaint-next-status">Action</label>
+                <select id="complaint-next-status" className="select" value={actionStatus} onChange={(event) => setActionStatus(event.target.value)}>
+                  <option value="">Add an investigation note</option>
+                  {(nextStatuses[inspectComplaint.status] || []).map((status) => <option key={status} value={status}>Mark {status.replaceAll('_', ' ')}</option>)}
+                </select>
+                <label htmlFor="complaint-action-note">Note</label>
+                <textarea id="complaint-action-note" className="input" required minLength={3} maxLength={5000} rows={3}
+                  value={actionNote} onChange={(event) => setActionNote(event.target.value)} placeholder="Record what was reviewed or done" />
+                {actionError && <p role="alert" style={{ color: 'var(--rose)' }}>{actionError}</p>}
+                <button type="submit" className="btn btn-primary" disabled={actionBusy}>{actionBusy ? 'Saving…' : 'Save update'}</button>
+              </form>
+              {!inspectComplaint.incident_id && existingIncidents.length > 0 && <div className="complaint-action-form">
+                <label htmlFor="existing-incident">Link to an existing incident in this ward</label>
+                <select id="existing-incident" className="select" value={linkIncidentId} onChange={(event) => setLinkIncidentId(event.target.value)}>
+                  <option value="">Choose incident</option>{existingIncidents.map((item) => <option key={item.incident_id} value={item.incident_id}>{item.incident_id} · {item.title}</option>)}
+                </select>
+                <button className="btn btn-secondary" type="button" disabled={!linkIncidentId || actionBusy} onClick={linkExisting}>Link complaint</button>
+              </div>}
             </div>
 
             <div style={{ marginTop: 20, display: 'flex', justifyContent: 'flex-end' }}>
+              {!inspectComplaint.incident_id && <button type="button" className="btn btn-secondary" style={{ marginRight: 8 }}
+                onClick={() => { onCreateIncident?.(inspectComplaint); setInspectComplaint(null); }}>Create incident</button>}
               <button onClick={() => setInspectComplaint(null)} className="btn btn-secondary">
                 Close
               </button>

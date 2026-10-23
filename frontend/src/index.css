@@ -261,6 +261,21 @@ button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible
   animation: scaleUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+.incident-location-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface-elevated);
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+}
+.incident-location-note svg { flex: none; color: var(--primary); margin-top: 1px; }
+.incident-location-note strong { display: block; color: var(--text-primary); margin-bottom: 3px; }
+.incident-location-note p { margin: 0; line-height: 1.45; }
+
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -352,7 +367,8 @@ button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible
 .wordmark, .auth-wordmark { color: var(--text-primary); font-family: var(--font-display); font-size: 1.38rem; font-weight: 800; letter-spacing: -0.065em; white-space: nowrap; }
 .wordmark { border: 0; padding: 0; background: none; cursor: pointer; }
 .wordmark span, .auth-wordmark span { color: var(--primary); }
-.primary-nav { align-self: stretch; display: flex; align-items: center; gap: 4px; min-width: 0; }
+.primary-nav { align-self: stretch; display: flex; flex: 1; align-items: center; gap: 4px; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.primary-nav::-webkit-scrollbar { display: none; }
 .nav-link { position: relative; align-self: stretch; display: inline-flex; align-items: center; gap: 7px; padding: 0 13px; border: 0; background: none; color: var(--text-secondary); font: 600 0.85rem var(--font-main); white-space: nowrap; cursor: pointer; }
 .nav-link:hover { color: var(--text-primary); }
 .nav-link.is-active { color: var(--text-primary); }
@@ -372,6 +388,37 @@ button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible
 .auth-form label { font-size: 0.82rem; font-weight: 600; }
 .auth-form .input { width: 100%; padding: 12px 14px; }
 .auth-submit { width: 100%; margin-top: 8px; }
+.auth-role-switch { display: flex; gap: 5px; padding: 4px; margin: -28px 0 24px; border-radius: var(--radius-md); background: var(--bg-surface-elevated); }
+.auth-role-switch button { flex: 1; padding: 9px 10px; border: 0; border-radius: 7px; background: transparent; color: var(--text-secondary); font: 600 0.82rem var(--font-main); cursor: pointer; }
+.auth-role-switch button.is-active { background: var(--bg-surface); color: var(--primary); box-shadow: var(--shadow-sm); }
+.citizen-access-form .select { width: 100%; }
+.citizen-access-form .quiet-note { margin: 0; }
+.auth-alternate { margin-top: 18px; }
+
+/* Citizen portal */
+.citizen-header .sign-out-button { margin-left: auto; }
+.citizen-main { max-width: 1040px; }
+.citizen-feedback { display: flex; align-items: center; gap: 8px; padding: 12px 16px; margin-bottom: 20px; border: 1px solid #cfe9d7; border-radius: var(--radius-md); background: var(--emerald-bg); color: #24704d; font-size: 0.88rem; }
+.citizen-feedback.is-error { border-color: #f1d0ce; background: var(--rose-bg); color: var(--rose); }
+.citizen-home-card { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; }
+.citizen-home-card p { margin-top: 5px; }
+.citizen-list-row { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 15px 0; border: 0; border-top: 1px solid var(--border-subtle); background: transparent; color: var(--text-primary); text-align: left; font: inherit; cursor: pointer; }
+.citizen-list-row strong { display: block; font-size: 0.9rem; }
+.citizen-list-row small { display: block; margin-top: 4px; color: var(--text-muted); font-size: 0.75rem; }
+.citizen-pagination { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 18px; font-size: 0.8rem; }
+.citizen-form { display: flex; flex-direction: column; gap: 12px; max-width: 740px; }
+.citizen-form label, .citizen-profile-form label { display: block; margin-bottom: 5px; color: var(--text-primary); font-size: 0.82rem; font-weight: 600; }
+.citizen-form .input, .citizen-form .select, .citizen-profile-form .input, .citizen-profile-form .select { width: 100%; }
+.citizen-form-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.citizen-form .quiet-note { display: flex; align-items: flex-start; gap: 7px; margin: 0; }
+.citizen-form > .btn { align-self: flex-start; margin-top: 8px; }
+.citizen-profile-form { display: flex; flex-direction: column; gap: 12px; margin-top: 22px; max-width: 590px; }
+.citizen-profile-form .btn { align-self: flex-start; margin-top: 8px; }
+.citizen-detail > p { margin: 10px 0; }
+.citizen-detail h3 { margin-top: 22px; font-size: 0.95rem; }
+.citizen-timeline { padding-left: 22px; margin-top: 12px; }
+.citizen-timeline li { margin-bottom: 14px; color: var(--text-secondary); font-size: 0.85rem; }
+.citizen-timeline p { margin-top: 3px; }
 
 /* Page structure */
 .page-stack { display: flex; flex-direction: column; gap: 24px; }
@@ -490,6 +537,7 @@ button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible
   .alert-card-status .btn { margin-left: auto; }
   .complaint-table { min-width: 700px; }
   .type-chart-layout { flex-wrap: wrap; }
+  .citizen-form-pair { grid-template-columns: 1fr; }
 }
 @media (max-width: 600px) {
   .metric-grid { grid-template-columns: 1fr; }
@@ -504,3 +552,15 @@ button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
 
+.citizen-notice {
+  border-top: 1px solid var(--border-subtle);
+  padding: 18px 0;
+}
+.citizen-notice:first-of-type { border-top: 0; }
+.citizen-notice.is-unread { border-left: 3px solid var(--primary); padding-left: 14px; }
+.citizen-notice p { margin: 10px 0 0; white-space: pre-wrap; }
+.notice-form { display: grid; gap: 14px; }
+.notice-form label { display: block; font-weight: 600; margin-bottom: 6px; }
+.notice-targets { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 6px 12px; max-height: 180px; overflow: auto; padding: 12px; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); }
+.notice-targets label { font-weight: 400; margin: 0; }
+.notice-actions, .cluster-records { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }

@@ -6,9 +6,14 @@ These are application data contracts:
   - Response schemas -> payload returned by API
 """
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from typing import Optional, List, Literal, Dict, Any, Union
-from datetime import datetime
+from datetime import datetime, timezone
+
+
+def _utc_if_naive(value: datetime | None) -> datetime | None:
+    """SQLite drops tzinfo; stored application timestamps are UTC."""
+    return value.replace(tzinfo=timezone.utc) if value is not None and value.tzinfo is None else value
 
 
 # [ WARD SCHEMAS ]
@@ -52,6 +57,70 @@ class LocalityResponse(BaseModel):
     geometry_precision: str
 
 
+class CitizenRegistration(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+
+    full_name: str = Field(min_length=2, max_length=120)
+    email: str = Field(min_length=3, max_length=254)
+    password: str = Field(min_length=12, max_length=128)
+    password_confirm: str
+    address: str = Field(min_length=5, max_length=500)
+    ward_id: str
+    locality_id: str
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, value: str) -> str:
+        normalized = value.strip().lower()
+        if normalized.count("@") != 1 or "." not in normalized.split("@", 1)[1]:
+            raise ValueError("Enter a valid email address")
+        return normalized
+
+    @model_validator(mode="after")
+    def passwords_match(self):
+        if self.password != self.password_confirm:
+            raise ValueError("Passwords do not match")
+        return self
+
+
+class CitizenLogin(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+
+    email: str
+    password: str
+
+
+class CitizenLocationUpdate(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+
+    address: str = Field(min_length=5, max_length=500)
+    ward_id: str
+    locality_id: str
+
+
+class CitizenResponse(BaseModel):
+    citizen_id: str
+    full_name: str
+    email: str
+    address: str
+    ward_id: str
+    zone_id: str
+    locality_id: str
+    location_status: str
+
+
+class CitizenComplaintCreate(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+
+    title: str = Field(min_length=5, max_length=200)
+    description: str = Field(min_length=10, max_length=5000)
+    complaint_type: Literal["low_pressure", "water_shortage", "dirty_water", "leakage", "bad_smell"]
+    address: str = Field(min_length=5, max_length=500)
+    ward_id: str
+    locality_id: str
+    observed_at: Optional[datetime] = None
+
+
 # ╔═══════════════════════════════════════════════════════════╗
 # ║  COMPLAINT SCHEMAS                                       ║
 # ╚═══════════════════════════════════════════════════════════╝
@@ -72,6 +141,80 @@ class ComplaintResponse(BaseModel):
     incident_id: Optional[str] = None
     resolved_at: Optional[datetime] = None
     incident_risk_label: int = 0
+    data_origin: Optional[str] = None
+
+    @field_validator("reported_at", "resolved_at", mode="after")
+    @classmethod
+    def utc_dates(cls, value):
+        return _utc_if_naive(value)
+
+
+class ComplaintEventResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    from_status: Optional[str] = None
+    to_status: str
+    note: Optional[str] = None
+    actor_role: str
+    occurred_at: datetime
+
+    @field_validator("occurred_at", mode="after")
+    @classmethod
+    def utc_date(cls, value):
+        return _utc_if_naive(value)
+
+
+class ComplaintRecordResponse(ComplaintResponse):
+    title: Optional[str] = None
+    address: Optional[str] = None
+    observed_at: Optional[datetime] = None
+    location_precision: Optional[str] = None
+    events: List[ComplaintEventResponse] = Field(default_factory=list)
+
+    @field_validator("observed_at", mode="after")
+    @classmethod
+    def utc_observed(cls, value):
+        return _utc_if_naive(value)
+
+
+class ComplaintStatusUpdate(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+
+    status: Literal["open", "in_progress", "resolved", "closed"]
+    note: str = Field(min_length=3, max_length=5000)
+
+
+class ComplaintNoteCreate(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+
+    note: str = Field(min_length=3, max_length=5000)
+
+
+class ComplaintIncidentLink(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+    incident_id: str = Field(min_length=1, max_length=50)
+
+
+class CitizenComplaintListResponse(BaseModel):
+    complaints: List[ComplaintRecordResponse]
+    total: int
+    page: int
+    total_pages: int
+
+
+class ComplaintClusterResponse(BaseModel):
+    cluster_id: str
+    ward_id: str
+    locality_id: str
+    complaint_type: str
+    complaint_ids: List[str]
+    complaint_count: int
+    first_reported_at: datetime
+    last_reported_at: datetime
+    explanation: str
+    latitude: float
+    longitude: float
 
 
 class ComplaintListResponse(BaseModel):
@@ -117,6 +260,11 @@ class AlertResponse(BaseModel):
     resolved_at: Optional[datetime] = None
     source: str
 
+    @field_validator("triggered_at", "acknowledged_at", "resolved_at", mode="after")
+    @classmethod
+    def utc_dates(cls, value):
+        return _utc_if_naive(value)
+
 
 class AlertEventResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -127,11 +275,59 @@ class AlertEventResponse(BaseModel):
     to_status: str
     occurred_at: datetime
 
+    @field_validator("occurred_at", mode="after")
+    @classmethod
+    def utc_date(cls, value):
+        return _utc_if_naive(value)
+
 
 class AlertUpdate(BaseModel):
     """Payload to update alert status."""
     model_config = ConfigDict(extra="forbid")
     status: Literal["acknowledged", "resolved", "dismissed"]
+
+
+class ServiceNoticeCreate(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+
+    title: str = Field(min_length=5, max_length=200)
+    notice_type: Literal["planned_cut", "interruption", "emergency_repair", "quality_advisory", "restoration", "general"]
+    message: str = Field(min_length=10, max_length=5000)
+    target_kind: Literal["citywide", "wards", "zones"]
+    target_ids: List[str] = Field(default_factory=list, max_length=38)
+    starts_at: Optional[datetime] = None
+    ends_at: Optional[datetime] = None
+    publish_at: Optional[datetime] = None
+    publication: Literal["draft", "publish"] = "draft"
+
+
+class ServiceNoticeEdit(ServiceNoticeCreate):
+    publication: Literal["draft", "publish"] = "draft"
+
+
+class ServiceNoticeAction(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    action: Literal["publish", "cancel"]
+
+
+class ServiceNoticeResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    title: str
+    notice_type: str
+    message: str
+    target_kind: str
+    target_ids: List[str]
+    starts_at: Optional[str] = None
+    ends_at: Optional[str] = None
+    publish_at: Optional[str] = None
+    status: str
+    revision: int
+    created_at: str
+    updated_at: str
+    published_at: Optional[str] = None
+    is_read: Optional[bool] = None
 
 
 class RiskSignal(BaseModel):
@@ -197,6 +393,11 @@ class IncidentResponse(BaseModel):
     related_complaint_ids: List[str] = Field(default_factory=list)
     related_alert_id: Optional[int] = None
 
+    @field_validator("reported_at", "assigned_at", "resolved_at", "closed_at", mode="after")
+    @classmethod
+    def utc_dates(cls, value):
+        return _utc_if_naive(value)
+
 
 class IncidentEventResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -209,6 +410,11 @@ class IncidentEventResponse(BaseModel):
     note: Optional[str] = None
     occurred_at: datetime
 
+    @field_validator("occurred_at", mode="after")
+    @classmethod
+    def utc_date(cls, value):
+        return _utc_if_naive(value)
+
 
 class IncidentStatusUpdate(BaseModel):
     """Payload to change incident status and optionally assign/resolve."""
@@ -219,6 +425,12 @@ class IncidentStatusUpdate(BaseModel):
     resolution_notes: Optional[str] = Field(default=None, min_length=3, max_length=5000)
 
 
+class IncidentNoteCreate(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+    note: str = Field(min_length=3, max_length=5000)
+    share_with_citizens: bool = False
+
+
 # ╔═══════════════════════════════════════════════════════════╗
 # ║  DASHBOARD SCHEMAS                                       ║
 # ╚═══════════════════════════════════════════════════════════╝
@@ -226,6 +438,8 @@ class IncidentStatusUpdate(BaseModel):
 class DashboardSummary(BaseModel):
     """Top-level KPI cards on the admin dashboard."""
     total_complaints: int
+    citizen_complaints: int
+    sample_complaints: int
     open_complaints: int
     in_progress_complaints: int
     resolved_complaints: int
@@ -238,6 +452,11 @@ class DashboardSummary(BaseModel):
     complaints_today: int
     wards_with_critical_alerts: int
     latest_complaint_at: Optional[datetime] = None
+
+    @field_validator("latest_complaint_at", mode="after")
+    @classmethod
+    def utc_date(cls, value):
+        return _utc_if_naive(value)
 
 
 class ComplaintsByType(BaseModel):
@@ -301,6 +520,11 @@ class WardRiskResponse(BaseModel):
     model_version: str
     data_through: Optional[datetime] = None
     is_demo: bool = True
+
+    @field_validator("data_through", mode="after")
+    @classmethod
+    def utc_date(cls, value):
+        return _utc_if_naive(value)
 
 
 class ScanRequest(BaseModel):

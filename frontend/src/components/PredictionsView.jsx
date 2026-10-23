@@ -7,7 +7,7 @@ const formattedDate = (value) => value
   ? new Date(value).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
   : 'No records';
 
-export default function PredictionsView({ onAlertsChanged, onNavigateAlerts }) {
+export default function PredictionsView({ onAlertsChanged, onNavigateAlerts, onOpenMap, onOpenComplaints, onOpenClusters, onCreateIncident }) {
   const [wards, setWards] = useState([]);
   const [report, setReport] = useState(null);
   const [selectedWardId, setSelectedWardId] = useState(null);
@@ -16,6 +16,7 @@ export default function PredictionsView({ onAlertsChanged, onNavigateAlerts }) {
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState('');
   const [scanResult, setScanResult] = useState(null);
+  const [allowHistoricalScan, setAllowHistoricalScan] = useState(false);
 
   const loadData = async () => {
     setLoading(true);
@@ -42,7 +43,7 @@ export default function PredictionsView({ onAlertsChanged, onNavigateAlerts }) {
     setScanning(true);
     setError('');
     try {
-      const result = await api.scanPredictionAlerts({ allow_stale_demo_data: true });
+      const result = await api.scanPredictionAlerts({ allow_stale_demo_data: allowHistoricalScan });
       setScanResult(result);
       onAlertsChanged?.();
     } catch (scanError) {
@@ -68,17 +69,21 @@ export default function PredictionsView({ onAlertsChanged, onNavigateAlerts }) {
             <RefreshCw size={15} /> Refresh
           </button>
           <button className="btn btn-primary btn-sm" type="button" onClick={scanAlerts} disabled={loading || scanning || !wards.length}>
-            {scanning ? 'Creating…' : 'Create alerts from scores'}
+            {scanning ? 'Adding…' : 'Add high scores to risk review'}
           </button>
         </div>
       </div>
 
       {wards[0]?.data_through && <p className="quiet-note">Dataset through {formattedDate(wards[0].data_through)} · Scores use the latest 30 days in the dataset</p>}
+      <label className="quiet-note" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <input type="checkbox" checked={allowHistoricalScan} onChange={(event) => setAllowHistoricalScan(event.target.checked)} />
+        Allow internal demo signals from complaint data older than seven days
+      </label>
       {error && <p role="alert" style={{ color: 'var(--rose)' }}>{error}</p>}
       {scanResult && (
         <div className="glass-card content-card" role="status">
-          {scanResult.created_alerts} alerts created · {scanResult.deduplicated_alerts} already open
-          <button className="text-action" type="button" style={{ marginLeft: 16 }} onClick={onNavigateAlerts}>Review alerts <ArrowUpRight size={14} /></button>
+          {scanResult.created_alerts} signals added · {scanResult.deduplicated_alerts} already open
+          <button className="text-action" type="button" style={{ marginLeft: 16 }} onClick={onNavigateAlerts}>Review signals <ArrowUpRight size={14} /></button>
         </div>
       )}
 
@@ -113,6 +118,12 @@ export default function PredictionsView({ onAlertsChanged, onNavigateAlerts }) {
             <h2>{selected.ward_name}</h2>
             <div className="risk-score-large">{scoreLabel(selected.risk_score)}</div>
             <p>{selected.complaint_count} complaints in the selected data window, including {selected.critical_count} marked critical.</p>
+            <div className="notice-actions">
+              <button className="btn btn-secondary btn-sm" type="button" onClick={() => onOpenComplaints?.(selected.ward_id)}>View ward complaints</button>
+              <button className="btn btn-secondary btn-sm" type="button" onClick={() => onOpenClusters?.(selected.ward_id)}>Review related reports</button>
+              <button className="btn btn-secondary btn-sm" type="button" onClick={() => onOpenMap?.(selected.ward_id)}>Inspect on map</button>
+              <button className="btn btn-secondary btn-sm" type="button" disabled={selected.risk_score == null} onClick={() => onCreateIncident?.(selected)}>Open investigation incident</button>
+            </div>
             {selected.is_anomalous && <p style={{ color: 'var(--amber)', marginTop: 8 }}>The latest seven-day complaint count is above its previous weekly average.</p>}
             <div style={{ marginTop: 28, borderTop: '1px solid var(--border-subtle)', paddingTop: 20 }}>
               <h3 style={{ fontSize: '0.92rem' }}>What contributes to this view</h3>

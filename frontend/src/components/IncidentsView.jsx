@@ -9,9 +9,9 @@ import {
   Table as TableIcon
 } from 'lucide-react';
 import { api } from '../api';
-import { CREW_TEAMS, INCIDENT_STAGES } from '../incidentConstants';
+import { INCIDENT_STAGES } from '../incidentConstants';
 
-export default function IncidentsView({ revision }) {
+export default function IncidentsView({ revision, focusIncidentId, onOpenComplaint }) {
   const [incidents, setIncidents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState(() =>
@@ -28,6 +28,9 @@ export default function IncidentsView({ revision }) {
   const [historyEvents, setHistoryEvents] = useState([]);
   const [historyError, setHistoryError] = useState('');
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyNote, setHistoryNote] = useState('');
+  const [shareHistoryNote, setShareHistoryNote] = useState(false);
+  const [historyNoteBusy, setHistoryNoteBusy] = useState(false);
 
   const openHistory = async (incident) => {
     setHistoryIncident(incident);
@@ -40,6 +43,18 @@ export default function IncidentsView({ revision }) {
     } finally {
       setHistoryLoading(false);
     }
+  };
+
+  const saveHistoryNote = async (event) => {
+    event.preventDefault();
+    setHistoryNoteBusy(true); setHistoryError('');
+    try {
+      await api.addIncidentNote(historyIncident.incident_id, historyNote, shareHistoryNote);
+      setHistoryNote('');
+      setShareHistoryNote(false);
+      setHistoryEvents(await api.getIncidentEvents(historyIncident.incident_id));
+    } catch (err) { setHistoryError(err.message); }
+    finally { setHistoryNoteBusy(false); }
   };
 
   const loadIncidents = async () => {
@@ -62,6 +77,11 @@ export default function IncidentsView({ revision }) {
   useEffect(() => {
     loadIncidents();
   }, [filterSeverity, page, revision]);
+
+  useEffect(() => {
+    if (!focusIncidentId) return;
+    api.getIncident(focusIncidentId).then(openHistory).catch((err) => setError(err.message));
+  }, [focusIncidentId]);
 
   const applyTransition = async (incident, nextStatus, notes = '', crew = '') => {
     try {
@@ -371,11 +391,8 @@ export default function IncidentsView({ revision }) {
               {pendingTransition.nextStatus === 'assigned' ? (
                 <>
                   <label htmlFor="transition-crew">Response crew</label>
-                  <input id="transition-crew" className="input" list="incident-crew-suggestions" required maxLength={120}
+                  <input id="transition-crew" className="input" required maxLength={120}
                     value={assignedTo} onChange={(event) => setAssignedTo(event.target.value)} placeholder="Enter the assigned crew" />
-                  <datalist id="incident-crew-suggestions">
-                    {CREW_TEAMS.map((team) => <option key={team} value={team} />)}
-                  </datalist>
                 </>
               ) : (
                 <>
@@ -402,6 +419,10 @@ export default function IncidentsView({ revision }) {
           <div className="modal-content" onClick={(event) => event.stopPropagation()}>
             <h3 style={{ marginBottom: 8 }}>Incident History</h3>
             <p style={{ marginBottom: 16 }}>{historyIncident.incident_id}: {historyIncident.title}</p>
+            {historyIncident.related_complaint_ids?.length > 0 && <div className="cluster-records">
+              {historyIncident.related_complaint_ids.map((id) => <button key={id} className="btn btn-secondary btn-sm" type="button"
+                onClick={() => { setHistoryIncident(null); onOpenComplaint?.(id); }}>{id}</button>)}
+            </div>}
             {historyLoading ? <p>Loading history…</p> : historyError ? (
               <p role="alert" style={{ color: 'var(--rose)' }}>{historyError}</p>
             ) : (
@@ -416,6 +437,13 @@ export default function IncidentsView({ revision }) {
                 ))}
               </ol>
             )}
+            <form className="complaint-action-form" onSubmit={saveHistoryNote}>
+              <label htmlFor="incident-history-note">Investigation note</label>
+              <textarea id="incident-history-note" className="input" required minLength={3} maxLength={5000} rows={3} value={historyNote}
+                onChange={(event) => setHistoryNote(event.target.value)} />
+              <label><input type="checkbox" checked={shareHistoryNote} onChange={(event) => setShareHistoryNote(event.target.checked)} /> Show this update in linked citizens’ complaint timelines</label>
+              <button className="btn btn-primary btn-sm" disabled={historyNoteBusy}>{historyNoteBusy ? 'Saving…' : 'Add note'}</button>
+            </form>
             <button className="btn btn-secondary" style={{ marginTop: 24 }} onClick={() => setHistoryIncident(null)}>Close</button>
           </div>
         </div>
